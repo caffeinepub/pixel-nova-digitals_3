@@ -1,0 +1,46 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-stop-the-admin-login-redirect-loop-by-ensuring-the-frontend-does-not-clear-the-stored-admin-session-token-due-to-non-auth-or-ambiguous-errors-during-admin-data-fetching-orders-list-order-detail-download-file-delete-order-only-clear-the-local-session-when-the-backend-explicitly-indicates-the-token-is-invalid-expired-via-the-token-based-endpoints",
+      "featureTitle": "Stop the Admin Login redirect loop by ensuring the frontend does not clear the stored admin session token due to non-auth or ambiguous errors during admin data fetching (orders list, order detail, download file, delete order). Only clear the local session when the backend explicitly indicates the token is invalid/expired via the token-based endpoints.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/utils/adminTokenError.ts",
+        "frontend/src/utils/userFacingError.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-68"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-admingate-flow-remains-stable-immediately-after-login-once-a-token-is-stored-in-sessionstorage-admingate-must-treat-the-user-as-authenticated-and-must-not-revert-to-the-login-screen-due-to-background-queries-unless-the-backend-explicitly-rejects-the-token-as-invalid-expired",
+      "featureTitle": "Ensure the AdminGate flow remains stable immediately after login: once a token is stored in sessionStorage, AdminGate must treat the user as authenticated and must not revert to the login screen due to background queries unless the backend explicitly rejects the token as invalid/expired.",
+      "files": [
+        "frontend/src/components/admin/AdminGate.tsx",
+        "frontend/src/components/admin/OrdersAdmin.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-70"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

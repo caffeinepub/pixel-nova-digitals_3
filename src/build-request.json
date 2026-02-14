@@ -1,0 +1,86 @@
+{
+  "kind": "build_request",
+  "title": "Fix continuous Admin Login redirect loop (AdminGate keeps bouncing back to login)",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-68",
+      "text": "Stop the Admin Login redirect loop by ensuring the frontend does not clear the stored admin session token due to non-auth or ambiguous errors during admin data fetching (orders list, order detail, download file, delete order). Only clear the local session when the backend explicitly indicates the token is invalid/expired via the token-based endpoints.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "It's continuously looping not fixed yet please fix this issue"
+        ]
+      },
+      "acceptanceCriteria": [
+        "After a successful admin login, the Admin dashboard remains visible and does not automatically return to the Admin Login screen.",
+        "If the orders query fails for reasons other than an invalid/expired token (e.g., transient backend issues, method mismatch, network errors), the UI stays on the Admin dashboard and shows an English error message instead of clearing the session.",
+        "The frontend clears the admin session only when the backend response/error is an explicit invalid/expired token signal (e.g., exact match or a narrow, deterministic check), not by generic substring matching like \"Invalid\".",
+        "All user-facing error messages are English-only and contain no emojis."
+      ]
+    },
+    {
+      "id": "REQ-69",
+      "text": "Make backend token-authenticated admin endpoints return a consistent, explicit, non-trapping error for invalid/expired tokens so the frontend can reliably detect when to clear the session (and otherwise keep the session). Apply this consistency to: getAllOrdersWithToken, getOrderDetailWithToken, downloadFileWithToken, and deleteOrderWithToken.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "It's continuously looping not fixed yet please fix this issue"
+        ]
+      },
+      "acceptanceCriteria": [
+        "For an invalid/expired token, each token-based admin endpoint returns a Result with an English error string that is consistent across endpoints (same wording).",
+        "Token-based admin endpoints never trap for normal failure conditions (invalid token, missing order, etc.); they return #err with an English message.",
+        "With a valid token returned from adminLogin, calling getAllOrdersWithToken immediately after login returns #ok([...]) (even if empty) and does not return an invalid/expired token error."
+      ]
+    },
+    {
+      "id": "REQ-70",
+      "text": "Ensure the AdminGate flow remains stable immediately after login: once a token is stored in sessionStorage, AdminGate must treat the user as authenticated and must not revert to the login screen due to background queries unless the backend explicitly rejects the token as invalid/expired.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "It's continuously looping not fixed yet please fix this issue"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Immediately after login succeeds and the token is stored, the Admin dashboard renders and remains rendered while admin queries load.",
+        "If a background admin query fails with a non-auth error, AdminGate still renders its children and does not switch back to AdminLogin.",
+        "If the backend explicitly rejects the token as invalid/expired, the session is cleared and the AdminLogin screen is shown."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not edit files under frontend/src/components/ui (read-only UI component sources).",
+    "Keep all Motoko logic in the single actor in backend/main.mo; only add backend/migration.mo if an existing stable state upgrade is required.",
+    "All user-facing text must be English-only and must not include emojis."
+  ],
+  "nonGoals": [
+    "Adding new product features beyond fixing the admin login loop and stabilizing the authenticated admin session flow.",
+    "Implementing third-party authentication providers (only existing app auth patterns are in scope).",
+    "Adding real-time communication features (WebSockets, push notifications, chat)."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}

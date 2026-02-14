@@ -1,0 +1,704 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 29,
+  "summary": "Revise PIXEL NOVA DIGITALS website scope to remove the Pricing Packages module entirely from the public site and related user flows/admin areas, while keeping the order system, admin dashboard (orders/CMS/analytics), SEO, and security/performance improvements; email/WhatsApp automation remain out of scope; admin auth remains password+session based with full route protection and stable error handling.",
+  "architectural_notes": [
+    "Project branding: PIXEL NOVA DIGITALS; Founder: Abhishek Yadav; Country: India.",
+    "Pricing must be editable by admin (CMS/admin-driven pricing tiers).",
+    "Site must be SEO-optimized and fully mobile responsive with dark neon theme (blue/purple accents) and smooth animations.",
+    "Order data model confirmed to store: service (Text), packageId (?PackageId), fullName (Text), email (Text), whatsapp (Text), description (Text), fileUpload (Blob stored in canister), budget (Text), deliveryTime (Text).",
+    "Email notifications and WhatsApp automation are out of scope due to current platform/plan limitations; only supported features will be implemented.",
+    "Admin dashboard must support order filtering, file download, and order deletion.",
+    "Admin auth decision: implement Option A (custom password-based admin auth) with an 'admins' table/collection storing username + password hash; create a default admin account with username 'vishal957041' and password 'Abhishek@2006' (store only hashed password); add secure session management, route protection, logout/session destroy, and non-crashing error messages.",
+    "Admin records must include: username (primary key), unique email, password hash, created_at; default admin: username vishal957041, email vishal957041@gmail.com, password Abhishek@2006 (store only hashed).",
+    "Admin login should validate email + password (not just username), create a secure session after login, and backend must support session invalidation on logout; all admin routes must be protected and return clear non-crashing errors on unauthorized access.",
+    "Pricing Packages module is to be removed site-wide (no public Pricing section or package-tier UI; remove package-related CTAs/selection and admin pricing editor if present)."
+  ],
+  "known_issues": [
+    "Email notification system cannot be implemented on current plan (email integration disabled).",
+    "WhatsApp automation via WhatsApp APIs is not supported on this platform/ICP canister environment.",
+    "Admin Login/Dashboard system currently unstable (login not properly connected to backend auth/DB, potential broken routes and page crashes); requires full fix with proper error handling and route protection.",
+    "Admin page gets stuck on 'admin authentication system is being set up' (bootstrap/initialization does not complete), preventing login.",
+    "Deployment/build process encountered a technical error; requires retry and investigation if persistent.",
+    "Admin login redirect loop: after submitting valid credentials, UI briefly shows dashboard then returns to Admin Login (session token likely not persisting/being recognized, or auth gate immediately invalidates session).",
+    "Admin login redirect loop persists (still looping after latest deployment); session token likely not persisting/recognized or admin-only calls still rejecting token, causing AdminGate to bounce back to login.",
+    "Admin login redirect loop is still continuously occurring (user confirmed not fixed after latest build/deploy/Draft v13)."
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-create-a-dark-premium-neon-accent-visual-theme-for-pixel-nova-digitals-and-apply-it-consistently-across-the-site-dark-base-neon-blue-purple-accents-modern-typography-clean-spacing-smooth-hover-scroll-animations-and-fully-mobile-responsive-layout",
+      "title": "Create a dark, premium, neon-accent visual theme for PIXEL NOVA DIGITALS and apply it consistently across the site (dark base, neon blue/purple accents, modern typography, clean spacing, smooth hover/scroll animations, and fully mobile responsive layout).",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-public-marketing-website-homepage-with-these-sections-and-exact-copy-hero-headline-subheadline-4-cta-buttons-about-us-services-modern-icon-card-grid-more-advanced-services-coming-soon-pricing-packages-3-tiers-why-choose-us-5-bullet-points-portfolio-placeholders-4-items",
+      "title": "Implement the public marketing website homepage with these sections and exact copy: Hero (headline, subheadline, 4 CTA buttons), About Us, Services (modern icon card grid + “More advanced services coming soon.”), Pricing Packages (3 tiers), Why Choose Us (5 bullet points), Portfolio placeholders (4 items).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-the-hero-cta-buttons-and-section-navigation-functional-clicking-view-services-pricing-contact-us-scrolls-or-navigates-to-the-corresponding-section-clicking-order-now-opens-the-order-flow-order-form-prefilled-with-selected-context-when-applicable",
+      "title": "Make the Hero CTA buttons and section navigation functional: clicking View Services/Pricing/Contact Us scrolls (or navigates) to the corresponding section; clicking Order Now opens the order flow (order form) prefilled with selected context when applicable.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-services-section-as-a-modern-card-grid-with-an-icon-title-short-description-and-an-order-now-button-for-each-of-the-following-services-photo-editing-video-editing-reels-editing-graphic-designing-thumbnail-designing-web-designing-website-development-application-development-microsoft-office-work-excel-powerpoint-word-include-the-line-more-advanced-services-coming-soon-after-the-grid",
+      "title": "Implement the Services section as a modern card grid with an icon, title, short description, and an “Order Now” button for each of the following services: Photo Editing, Video Editing, Reels Editing, Graphic Designing, Thumbnail Designing, Web Designing, Website Development, Application Development, Microsoft Office Work (Excel, PowerPoint, Word). Include the line “More advanced services coming soon.” after the grid.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-a-pricing-packages-module-with-exactly-three-tiers-basic-standard-premium-each-tier-must-display-an-editable-price-field-delivery-time-revision-limit-a-features-list-and-a-select-package-button-that-starts-the-order-flow-with-the-chosen-package-selected",
+      "title": "Build a Pricing Packages module with exactly three tiers (Basic, Standard, Premium). Each tier must display an editable price field, delivery time, revision limit, a features list, and a “Select Package” button that starts the order flow with the chosen package selected.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-an-order-now-workflow-backed-by-the-motoko-canister-create-an-order-form-service-and-or-package-selection-customer-name-email-requirements-notes-and-optional-budget-message-submit-it-to-the-backend-and-show-a-confirmation-state-after-successful-submission",
+      "title": "Implement an Order Now workflow backed by the Motoko canister: create an order form (service and/or package selection, customer name, email, requirements/notes, and optional budget/message), submit it to the backend, and show a confirmation state after successful submission.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-secure-admin-panel-internet-identity-login-for-the-founder-admin-to-manage-site-content-and-pricing-update-pricing-tiers-price-delivery-time-revision-limit-features-list-and-view-submitted-orders-list-details",
+      "title": "Create a secure Admin Panel (Internet Identity login) for the founder/admin to manage site content and pricing: update pricing tiers (price, delivery time, revision limit, features list) and view submitted orders (list + details).",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-baseline-seo-optimization-for-the-public-website-semantic-headings-landmarks-correct-page-title-description-and-social-meta-tags-for-the-brand-pixel-nova-digitals",
+      "title": "Add baseline SEO optimization for the public website: semantic headings/landmarks, correct page title/description, and social meta tags for the brand PIXEL NOVA DIGITALS.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-generated-brand-visuals-as-static-assets-and-use-them-in-the-ui-logo-and-a-dark-neon-abstract-hero-background-store-generated-images-under-frontend-public-assets-generated-and-reference-them-directly-from-the-frontend",
+      "title": "Add generated brand visuals as static assets and use them in the UI (logo and a dark neon abstract hero background). Store generated images under frontend/public/assets/generated and reference them directly from the frontend.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-public-order-form-ui-to-include-all-requested-fields-and-submit-them-to-the-backend-service-dropdown-package-selection-full-name-email-whatsapp-project-description-file-upload-budget-range-delivery-time-keep-the-post-submit-success-state",
+      "title": "Update the public Order Form UI to include all requested fields and submit them to the backend: Service Dropdown, Package Selection, Full Name, Email, WhatsApp, Project Description, File Upload, Budget Range, Delivery Time; keep the post-submit success state.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-wire-frontend-data-types-and-react-query-hooks-to-the-updated-backend-order-api-including-file-upload-payload-and-new-fields",
+      "title": "Wire frontend data types and React Query hooks to the updated backend order API (including file upload payload and new fields).",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-upgrade-the-admin-orders-dashboard-to-support-filtering-by-service-and-or-package-viewing-the-new-order-fields-whatsapp-service-description-budget-delivery-time-downloading-uploaded-files-and-deleting-orders",
+      "title": "Upgrade the Admin Orders dashboard to support: filtering by service and/or package, viewing the new order fields (WhatsApp, service, description, budget, delivery time), downloading uploaded files, and deleting orders.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-current-accessdenied-screen-from-the-admin-page-flow-so-users-no-longer-see-an-access-denied-page-after-attempting-to-open-the-admin-panel",
+      "title": "Remove the current AccessDenied screen from the Admin page flow so users no longer see an 'Access Denied' page after attempting to open the Admin panel.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-unauthorized-admin-route-handling-so-that-authenticated-non-admin-users-are-redirected-back-to-the-home-page-or-shown-the-existing-login-screen-state-with-a-neutral-non-blocking-message-no-access-denied-wording-explaining-they-do-not-have-admin-access",
+      "title": "Update unauthorized Admin-route handling so that authenticated non-admin users are redirected back to the Home page (or shown the existing login screen state) with a neutral, non-blocking message (no 'Access Denied' wording) explaining they do not have admin access.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-adminpage-ui-flow-to-remove-authentication-role-gating-so-the-admin-panel-ui-renders-for-everyone-do-not-require-internet-identity-login-to-open-or-use-the-admin-panel-tabs",
+      "title": "Update the AdminPage UI flow to remove authentication/role gating so the Admin Panel UI renders for everyone. Do not require Internet Identity login to open or use the Admin Panel tabs.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-or-disable-the-unauthorized-admin-handling-path-that-sends-users-back-to-home-specifically-due-to-lacking-admin-privileges-since-admin-privileges-are-no-longer-required-to-access-the-admin-panel",
+      "title": "Remove or disable the unauthorized-admin handling path that sends users back to Home specifically due to lacking admin privileges, since admin privileges are no longer required to access the Admin Panel.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-dedicated-admin-login-ui-username-password-and-connect-it-to-the-new-backend-authentication-apis-after-successful-login-store-the-session-token-in-the-browser-session-scoped-and-redirect-the-user-to-the-admin-dashboard-view",
+      "title": "Create a dedicated Admin Login UI (username + password) and connect it to the new backend authentication APIs; after successful login, store the session token in the browser (session-scoped) and redirect the user to the Admin Dashboard view.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-first-run-admin-bootstrap-ux-when-no-admin-exists-provide-a-one-time-screen-that-triggers-default-admin-creation-and-displays-the-generated-credentials-exactly-once-with-clear-instructions-to-copy-them-and-change-them-immediately-by-creating-a-new-admin-and-deleting-rotating-the-default-or-equivalent-supported-flow",
+      "title": "Add first-run admin bootstrap UX: when no admin exists, provide a one-time screen that triggers default admin creation and displays the generated credentials exactly once with clear instructions to copy them and change them immediately by creating a new admin and deleting/rotating the default (or equivalent supported flow).",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-admin-data-fetching-mutations-pricing-editor-orders-dashboard-file-download-delete-to-include-the-admin-session-token-with-requests-and-ensure-all-admin-screens-show-friendly-error-messages-no-white-screens-crashes-when-unauthenticated-expired-or-when-backend-errors-occur",
+      "title": "Update frontend admin data fetching/mutations (pricing editor, orders dashboard, file download, delete) to include the admin session token with requests, and ensure all admin screens show friendly error messages (no white screens / crashes) when unauthenticated, expired, or when backend errors occur.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-refactor-admin-navigation-flow-so-admin-routes-views-are-protected-client-side-the-admin-dashboard-ui-must-only-render-after-successful-admin-login-otherwise-render-the-admin-login-bootstrap-ui-remove-reliance-on-internet-identity-login-for-admin-access",
+      "title": "Refactor Admin navigation flow so admin routes/views are protected client-side: the Admin Dashboard UI must only render after successful admin login; otherwise render the Admin Login/Bootstrap UI. Remove reliance on Internet Identity login for admin access.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-the-mock-admin-auth-logic-in-the-frontend-with-real-backend-integration-update-frontend-src-hooks-useadminauth-ts-and-frontend-src-hooks-useadminbootstrap-ts-to-call-the-new-backend-apis-store-the-returned-session-token-in-sessionstorage-existing-adminsession-utility-and-use-it-for-logout",
+      "title": "Replace the mock admin auth logic in the frontend with real backend integration: update frontend/src/hooks/useAdminAuth.ts and frontend/src/hooks/useAdminBootstrap.ts to call the new backend APIs; store the returned session token in sessionStorage (existing adminSession utility) and use it for logout.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-admin-route-protection-is-stable-and-fully-functional-the-admin-dashboard-frontend-src-pages-admin-adminpage-tsx-via-admingate-must-not-render-pricing-orders-tabs-unless-the-user-is-authenticated-with-a-valid-admin-session-show-bootstrap-ui-when-no-admin-exists-and-show-login-ui-when-unauthenticated-avoid-page-reload-dependence-where-possible-and-ensure-all-failure-states-are-handled-with-user-friendly-messages",
+      "title": "Ensure admin route protection is stable and fully functional: the Admin Dashboard (frontend/src/pages/admin/AdminPage.tsx via AdminGate) must not render Pricing/Orders tabs unless the user is authenticated with a valid admin session; show bootstrap UI when no admin exists and show login UI when unauthenticated; avoid page reload dependence where possible and ensure all failure states are handled with user-friendly messages.",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-include-the-admin-session-token-with-all-admin-data-fetching-mutations-from-the-frontend-pricing-editor-orders-dashboard-file-download-delete-order-so-they-work-only-when-authenticated-and-display-friendly-errors-when-the-backend-rejects-requests",
+      "title": "Include the admin session token with all admin data fetching/mutations from the frontend (pricing editor, orders dashboard, file download, delete order) so they work only when authenticated, and display friendly errors when the backend rejects requests.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-admin-bootstrap-ui-copy-and-behavior-to-match-the-provided-fixed-default-credentials-username-vishal957041-password-abhishek-2006-and-remove-avoid-any-wording-that-implies-the-password-is-generated-or-random",
+      "title": "Update the Admin bootstrap UI copy and behavior to match the provided fixed default credentials (username \"vishal957041\", password \"Abhishek@2006\") and remove/avoid any wording that implies the password is generated or random.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-stabilize-the-admin-bootstrap-loading-state-so-the-ui-cannot-remain-indefinitely-on-a-spinner-message-if-the-backend-call-fails-or-never-resolves-in-frontend-src-hooks-useadminbootstrap-ts-and-or-frontend-src-components-admin-admingate-tsx-add-a-bounded-timeout-and-a-visible-error-state-with-a-retry-action-that-calls-checkadminexists-again-user-facing-text-must-be-in-english-and-should-instruct-the-user-to-retry-if-setup-is-taking-too-long",
+      "title": "Stabilize the Admin Bootstrap loading state so the UI cannot remain indefinitely on a spinner/message if the backend call fails or never resolves. In `frontend/src/hooks/useAdminBootstrap.ts` and/or `frontend/src/components/admin/AdminGate.tsx`, add a bounded timeout and a visible error state with a Retry action that calls `checkAdminExists()` again. User-facing text must be in English and should instruct the user to retry if setup is taking too long.",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-admin-bootstrap-login-ux-transitions-correctly-after-bootstrap-login-without-requiring-a-full-page-reload-after-createdefaultadmin-succeeds-the-user-must-be-able-to-proceed-to-the-login-screen-and-successfully-log-in-with-the-fixed-default-credentials-after-a-successful-adminlogin-admingate-must-render-the-admin-dashboard-children-immediately-based-on-the-stored-session-token",
+      "title": "Ensure the Admin Bootstrap + Login UX transitions correctly after bootstrap/login without requiring a full page reload. After `createDefaultAdmin()` succeeds, the user must be able to proceed to the Login screen and successfully log in with the fixed default credentials. After a successful `adminLogin()`, AdminGate must render the Admin dashboard children immediately based on the stored session token.",
+      "reqIds": [
+        "REQ-43"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-re-run-the-full-project-build-and-deployment-if-the-deployment-fails-again-identify-the-specific-failing-step-frontend-build-motoko-canister-build-candid-typescript-bindings-generation-or-asset-bundling-and-implement-the-minimal-code-config-changes-required-so-the-project-deploys-successfully",
+      "title": "Re-run the full project build and deployment. If the deployment fails again, identify the specific failing step (frontend build, Motoko canister build, Candid/TypeScript bindings generation, or asset bundling) and implement the minimal code/config changes required so the project deploys successfully.",
+      "reqIds": [
+        "REQ-44"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-all-user-facing-error-states-shown-during-build-related-failure-recovery-e-g-when-backend-methods-are-unavailable-or-connectivity-fails-use-english-only-text-and-do-not-include-emojis",
+      "title": "Ensure all user-facing error states shown during build-related failure recovery (e.g., when backend methods are unavailable or connectivity fails) use English-only text and do not include emojis.",
+      "reqIds": [
+        "REQ-45"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-admin-login-flow-to-support-email-based-login-while-remaining-stable-change-the-admin-login-ui-to-request-email-password-english-labels-and-validation-messages-update-frontend-src-hooks-useadminauth-ts-to-call-the-new-backend-email-login-method-and-keep-logout-behavior-intact-clear-session-locally-even-if-backend-logout-fails",
+      "title": "Update the frontend Admin Login flow to support email-based login while remaining stable: change the Admin Login UI to request `Email` + `Password` (English labels and validation messages), update `frontend/src/hooks/useAdminAuth.ts` to call the new backend email-login method, and keep logout behavior intact (clear session locally even if backend logout fails).",
+      "reqIds": [
+        "REQ-51"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-production-ready-error-handling-for-admin-auth-and-protected-admin-operations-across-backend-frontend-expected-failures-invalid-credentials-missing-token-expired-token-duplicate-email-etc-must-never-crash-the-canister-or-cause-a-white-screen-in-the-ui-and-all-user-facing-text-must-be-english-only",
+      "title": "Ensure production-ready error handling for admin auth and protected admin operations across backend + frontend: expected failures (invalid credentials, missing token, expired token, duplicate email, etc.) must never crash the canister or cause a white-screen in the UI, and all user-facing text must be English-only.",
+      "reqIds": [
+        "REQ-52"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-public-pricing-section-and-all-pricing-navigation-actions-from-the-marketing-website-so-pricing-packages-are-not-shown-or-referenced-anywhere-on-the-home-page",
+      "title": "Remove the public Pricing section and all Pricing navigation/actions from the marketing website so pricing packages are not shown or referenced anywhere on the Home page.",
+      "reqIds": [
+        "REQ-53"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-package-selection-from-the-public-order-flow-ui-prefill-form-fields-and-submission-payload-keeping-the-rest-of-the-order-form-fields-and-success-state-unchanged",
+      "title": "Remove package selection from the public Order flow UI (prefill, form fields, and submission payload), keeping the rest of the order form fields and success state unchanged.",
+      "reqIds": [
+        "REQ-54"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-pricing-package-management-surfaces-from-the-admin-panel-ui",
+      "title": "Remove pricing/package management surfaces from the Admin Panel UI.",
+      "reqIds": [
+        "REQ-55"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-all-package-related-display-and-filtering-from-the-admin-orders-ui-so-orders-are-managed-without-any-package-concept",
+      "title": "Remove all package-related display and filtering from the Admin Orders UI so orders are managed without any package concept.",
+      "reqIds": [
+        "REQ-56"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-pricing-packages-and-packageid-concepts-from-frontend-data-hooks-and-types-including-react-query-hooks-that-fetch-or-mutate-pricing-packages",
+      "title": "Remove pricing packages and PackageId concepts from frontend data hooks and types, including React Query hooks that fetch or mutate pricing packages.",
+      "reqIds": [
+        "REQ-57"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-admin-data-fetching-mutations-used-by-the-admin-dashboard-orders-list-order-detail-file-download-delete-order-to-include-the-admin-session-token-with-every-admin-only-backend-call-so-the-dashboard-does-not-immediately-invalidate-the-session-and-bounce-back-to-the-login-screen",
+      "title": "Update frontend admin data fetching/mutations used by the Admin Dashboard (orders list, order detail, file download, delete order) to include the admin session token with every admin-only backend call, so the dashboard does not immediately invalidate the session and bounce back to the login screen.",
+      "reqIds": [
+        "REQ-61"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-admingate-adminlogin-transition-remains-stable-after-login-once-the-token-is-stored-in-sessionstorage-admingate-must-treat-the-user-as-authenticated-and-must-not-revert-to-the-login-screen-due-to-background-queries-unless-the-backend-explicitly-rejects-the-token-as-invalid-expired",
+      "title": "Ensure the AdminGate + AdminLogin transition remains stable after login: once the token is stored in sessionStorage, AdminGate must treat the user as authenticated and must not revert to the login screen due to background queries unless the backend explicitly rejects the token as invalid/expired.",
+      "reqIds": [
+        "REQ-63"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-stop-the-admin-login-redirect-loop-by-ensuring-the-admin-orders-list-is-fetched-via-a-session-token-protected-backend-api-not-principal-accesscontrol-admin-checks-and-ensure-the-frontend-uses-that-token-based-api-so-a-successful-login-does-not-immediately-trigger-an-unauthorized-error-that-clears-the-session",
+      "title": "Stop the Admin login redirect loop by ensuring the Admin Orders list is fetched via a session-token-protected backend API (not Principal/AccessControl admin checks), and ensure the frontend uses that token-based API so a successful login does not immediately trigger an unauthorized error that clears the session.",
+      "reqIds": [
+        "REQ-64"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-frontend-update-the-orders-list-react-query-hook-to-call-the-token-based-backend-orders-list-api-pass-the-token-from-sessionstorage-via-the-existing-adminsession-utility-and-only-clear-the-local-session-when-the-backend-explicitly-indicates-the-token-is-invalid-expired-do-not-clear-the-session-for-generic-unauthorized-strings-from-legacy-endpoints",
+      "title": "Frontend: update the Orders list React Query hook to call the token-based backend orders-list API, pass the token from `sessionStorage` via the existing `adminSession` utility, and only clear the local session when the backend explicitly indicates the token is invalid/expired (do not clear the session for generic \"Unauthorized\" strings from legacy endpoints).",
+      "reqIds": [
+        "REQ-66"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-stop-the-admin-login-redirect-loop-by-ensuring-the-frontend-does-not-clear-the-stored-admin-session-token-due-to-non-auth-or-ambiguous-errors-during-admin-data-fetching-orders-list-order-detail-download-file-delete-order-only-clear-the-local-session-when-the-backend-explicitly-indicates-the-token-is-invalid-expired-via-the-token-based-endpoints",
+      "title": "Stop the Admin Login redirect loop by ensuring the frontend does not clear the stored admin session token due to non-auth or ambiguous errors during admin data fetching (orders list, order detail, download file, delete order). Only clear the local session when the backend explicitly indicates the token is invalid/expired via the token-based endpoints.",
+      "reqIds": [
+        "REQ-68"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-admingate-flow-remains-stable-immediately-after-login-once-a-token-is-stored-in-sessionstorage-admingate-must-treat-the-user-as-authenticated-and-must-not-revert-to-the-login-screen-due-to-background-queries-unless-the-backend-explicitly-rejects-the-token-as-invalid-expired",
+      "title": "Ensure the AdminGate flow remains stable immediately after login: once a token is stored in sessionStorage, AdminGate must treat the user as authenticated and must not revert to the login screen due to background queries unless the backend explicitly rejects the token as invalid/expired.",
+      "reqIds": [
+        "REQ-70"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create public-facing website with dark theme + neon blue/purple accents, smooth animations, modern UI, mobile responsive, SEO optimized",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Implement homepage sections: Hero (headline/subheadline + buttons), About Us, Services grid with icons + Order Now buttons and 'More advanced services coming soon', Why Choose Us, Portfolio placeholders",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Build pricing packages module with 3 tiers (Basic/Standard/Premium) including features list, editable price, delivery time, revision limit, and Select Package button",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Develop backend + database to store and manage orders submitted from the public site (Order Now flow)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Create secure admin panel to manage site content and update pricing anytime",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Implement backend data models and APIs in the single Motoko main actor to support: public queries for pricing/services/portfolio placeholders, authenticated admin mutations for pricing updates, and order creation + order listing for admin.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Upgrade order form to include fields: service dropdown, package selection, full name, email, WhatsApp, project description, file upload, budget range, delivery time; on submit save to database and show success message",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Enhance admin order management: view all orders, filter by service/package, download uploaded files, delete orders",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Add admin content management (CMS): edit Hero section, edit About section, add/edit/delete Services, edit Pricing, update Portfolio",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Add basic analytics dashboard: total visitors, total orders, most ordered service, conversion rate",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Add security & performance improvements: secure authentication, spam protection for forms, fast loading, image optimization, clean code structure",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Expand SEO strategy: proper meta titles/descriptions, SEO-friendly URLs, keyword optimization, sitemap generation, Google Search Console readiness, basic schema markup",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Add Contact section: contact form, WhatsApp button (link), email display, social icons, CTA 'Let’s Work Together'",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Add Footer with copy 'PIXEL NOVA DIGITALS – Powered by Creativity & Innovation' and copyright",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Update the backend order data model and APIs to store the user-confirmed order fields exactly as: service: Text, packageId: ?PackageId, fullName: Text, email: Text, whatsapp: Text, description: Text, fileUpload: Blob (file stored in canister), budget: Text, deliveryTime: Text.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-23",
+      "summary": "Add backend support for file download and deletion for admins: allow an admin to download the uploaded file for a given order and delete an order (including its stored file).",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Create a conditional Motoko state migration to preserve existing pricing and orders while upgrading persisted order structure to the new expanded structure (or safely handle legacy orders without breaking admin/order UI).",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Change admin access gating behavior/UI to remove the current 'Access Denied' screen (adjust unauthorized admin-route handling)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-26",
+      "summary": "Make the Admin Panel accessible to everyone (remove admin-only access gating / allow any user to open and use admin features)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-27",
+      "summary": "Remove backend admin-only access control from Admin Panel operations so that any caller (including anonymous users) can use the admin APIs for pricing and orders. This includes allowing any caller to: update pricing (updatePackagePrice), view a single order (getOrder), list all orders (getAllOrders), download uploaded files (downloadFile), and delete orders (deleteOrder).",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "Fix and rebuild Admin Authentication + Login/Dashboard flow: connect login form to backend DB auth, support manual admin creation and first-run default admin shown once, add password hashing + secure sessions, protect admin routes, redirect on success, show proper errors on failure, fix broken backend routes and prevent dashboard crashes",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-29",
+      "summary": "Implement a secure password-based admin authentication system in the Motoko canister, including persistent storage for admin user records (username + password hash) and session records (session token + expiry).",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-30",
+      "summary": "Add backend APIs to support: (1) checking whether any admin exists, (2) bootstrapping a default admin when none exists and returning the generated credentials exactly once, (3) manual admin creation by an authenticated admin session, (4) login returning a session token, and (5) logout / session invalidation.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-31",
+      "summary": "Protect all admin-only backend operations (e.g., pricing updates, order listing, file download, order deletion, and any admin CMS actions if present) so they require a valid admin session token; unauthenticated requests must be rejected with a non-crashing, descriptive error.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-32",
+      "summary": "Implement persistent password-based admin authentication in the Motoko canister, including an “admins” record store (username + password hash) and session management (session token + expiry) within the single backend actor (backend/main.mo).",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-33",
+      "summary": "Add backend admin-auth APIs to support: (1) checking whether any admin exists, (2) bootstrapping a default admin when none exists using the provided credentials (username: vishal957041, password: Abhishek@2006), (3) logging in (returns session token + expiry metadata), and (4) logging out (invalidates the session token).",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-34",
+      "summary": "Protect all admin-only backend operations to require a valid admin session token, including pricing updates and all order-admin functions (list orders, view order, download file, delete order). Unauthenticated or expired sessions must be rejected with descriptive errors that do not crash the frontend.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-35",
+      "summary": "Add a conditional Motoko state migration (backend/migration.mo) only if needed to preserve existing pricing packages and orders while introducing new stable state for admins and sessions.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-36",
+      "summary": "Implement backend admin bootstrap and authentication APIs in backend/main.mo so the system can create a default admin account with the exact credentials username \"vishal957041\" and password \"Abhishek@2006\" when (and only when) no admin exists.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-37",
+      "summary": "Protect all admin-only backend operations (pricing updates and all order-admin functions) so they require a valid admin session token created via adminLogin, and reject unauthenticated/expired sessions with descriptive, non-crashing errors.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-39",
+      "summary": "Add a conditional Motoko stable-state migration only if needed to preserve existing pricing packages and orders while introducing persistent admin records and session records.",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-40",
+      "summary": "Implement the missing backend admin-auth APIs in `backend/main.mo` so the frontend Admin Bootstrap/Login flow can complete (no more “admin authentication system is being set up” due to missing methods). Add these callable methods with stable persistence: `adminExists() -> Bool`, `createDefaultAdmin() -> { username: Text; password: Text }` (only when no admin exists; must use the fixed credentials username `vishal957041` and password `Abhishek@2006`), `adminLogin(username: Text, password: Text) -> { token: Text; username: Text; expiresAt: Int }`, and `adminLogout(token: Text) -> ()`. Ensure these methods never trap for normal failure conditions; instead return/throw descriptive errors that the frontend can display.",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-41",
+      "summary": "Protect admin-only backend operations in `backend/main.mo` using the new session token so the Admin Dashboard works correctly once logged in. Update admin operations to require a valid session token parameter (matching the frontend’s conditional token passing logic in `frontend/src/hooks/useQueries.ts`): `updatePackagePrice(packageId, price, token)`, `getAllOrders(token)`, `getOrder(id, token)` (if used by UI), `downloadFile(orderId, token)`, and `deleteOrder(id, token)`. Unauthenticated/expired/invalid tokens must be rejected with descriptive errors (no traps) so the frontend can show a friendly message and clear the session.",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-42",
+      "summary": "Extend backend password-based admin auth to support admins table fields (username PK, unique email, hashed password, created_at), default admin email vishal957041@gmail.com, email+password login endpoint with proper errors, session-based auth with protected admin routes/middleware redirects, and logout that destroys session",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-43",
+      "summary": "Implement persistent admin storage in the Motoko canister to model an `admins` collection with fields: `username` (primary key), `email` (unique), `passwordHash` (hashed), and `createdAt` (timestamp).",
+      "reqIds": [
+        "REQ-46"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-44",
+      "summary": "Create the default admin account exactly once when no admin exists: username `vishal957041`, email `vishal957041@gmail.com`, password `Abhishek@2006` (stored only as a hash). Ensure the bootstrap method does not recreate/overwrite admins if one already exists.",
+      "reqIds": [
+        "REQ-47"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-45",
+      "summary": "Add a secure backend login API that authenticates using `email + password` (not username). The login must: validate inputs, verify the stored password hash, and return a clear error message when credentials are invalid.",
+      "reqIds": [
+        "REQ-48"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-46",
+      "summary": "Implement session-based authentication in the backend: create a secure session token after successful admin login, store the admin identifier in the session, enforce expiry, and provide a backend logout route that invalidates the session token.",
+      "reqIds": [
+        "REQ-49"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-47",
+      "summary": "Protect all admin-only backend operations (pricing updates, order listing, order details, file download, order deletion, and any existing/future admin mutations) by requiring a valid admin session token rather than relying on caller Principal-based admin permissions. Align method signatures with the frontend’s token-passing behavior in `frontend/src/hooks/useQueries.ts` (token parameter when present).",
+      "reqIds": [
+        "REQ-50"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-48",
+      "summary": "Remove Pricing Packages feature from everywhere (homepage Pricing section, package selection/select package buttons, any package-related order flow UI, and any admin pricing management surfaces)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-54",
+      "summary": "Remove pricing package storage and APIs from the Motoko canister, and remove packageId from the order data model and order creation API so the backend no longer supports pricing packages anywhere.",
+      "reqIds": [
+        "REQ-58"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-55",
+      "summary": "Add a conditional Motoko state migration to safely handle existing persisted orders that may still contain packageId data, ensuring upgrade does not break and legacy package values are dropped during migration.",
+      "reqIds": [
+        "REQ-59"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-56",
+      "summary": "Fix the admin login redirect loop where the UI briefly shows the dashboard after login and then returns to the Admin Login page by ensuring that admin-only backend operations are authorized via the admin session token (not Internet Identity/Principal-based AccessControl). Update backend admin-only methods to validate the provided session token and return descriptive, non-trapping errors on failure.",
+      "reqIds": [
+        "REQ-60"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-58",
+      "summary": "Correct backend session token generation so each successful admin login creates a unique, unpredictable token (do not use a timestamp string alone).",
+      "reqIds": [
+        "REQ-62"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-60",
+      "summary": "Backend: add a token-authenticated method to list all orders (e.g., `getAllOrdersWithToken(token : Text) : async { #ok : [NewOrder]; #err : Text }`) that uses the existing `validateToken` session logic, never traps for normal auth failures, and returns descriptive English errors (e.g., \"Invalid or expired admin session token\").",
+      "reqIds": [
+        "REQ-65"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-62",
+      "summary": "Backend: keep existing legacy `getAllOrders()` behavior unchanged or clearly deprecated, but ensure the Admin UI no longer depends on it so Principal-based admin gating cannot break session-based login flows.",
+      "reqIds": [
+        "REQ-67"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-64",
+      "summary": "Make backend token-authenticated admin endpoints return a consistent, explicit, non-trapping error for invalid/expired tokens so the frontend can reliably detect when to clear the session (and otherwise keep the session). Apply this consistency to: getAllOrdersWithToken, getOrderDetailWithToken, downloadFileWithToken, and deleteOrderWithToken.",
+      "reqIds": [
+        "REQ-69"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "PIXEL NOVA DIGITALS",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

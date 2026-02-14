@@ -1,0 +1,55 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix AdminGate redirect loop by tightening admin-token invalidation detection",
+  "requirements": [
+    {
+      "id": "REQ-68",
+      "summary": "Prevent admin session from being cleared on non-auth/ambiguous fetch errors; only clear when backend explicitly signals invalid/expired token for token-based admin calls.",
+      "acceptanceCriteria": [
+        "After a successful admin login, the Admin dashboard remains visible and does not automatically return to the Admin Login screen.",
+        "If the orders query fails for reasons other than an invalid/expired token (e.g., transient backend issues, method mismatch, network errors), the UI stays on the Admin dashboard and shows an English error message instead of clearing the session.",
+        "The frontend clears the admin session only when the backend response/error is an explicit invalid/expired token signal (e.g., exact match or a narrow, deterministic check), not by generic substring matching like \"Invalid\".",
+        "All user-facing error messages are English-only and contain no emojis."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/adminTokenError.ts",
+          "operation": "create",
+          "description": "Add a small helper for deterministic detection of invalid/expired admin token errors returned by token-based admin calls (e.g., exact-match allowlist and/or narrowly-scoped matcher), so session clearing logic is not driven by generic substring matches."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Update token-authenticated admin query/mutation hooks (orders list, order detail, download file, delete order) to: (1) never clear adminSession on generic errors or normalizeError output; (2) only clear adminSession when the helper in frontend/src/utils/adminTokenError.ts confirms the backend returned an explicit invalid/expired token signal; and (3) ensure thrown errors remain English-only (via normalizeError) without triggering logout on transient failures."
+        },
+        {
+          "path": "frontend/src/utils/userFacingError.ts",
+          "operation": "modify",
+          "description": "Ensure normalizeError preserves clear, English-only messaging for admin flows without introducing token-invalidation heuristics based on generic wording (keep token invalidation logic confined to the dedicated helper)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-70",
+      "summary": "Stabilize AdminGate after login so background admin queries cannot force a return to AdminLogin unless the token is explicitly rejected as invalid/expired.",
+      "acceptanceCriteria": [
+        "Immediately after login succeeds and the token is stored, the Admin dashboard renders and remains rendered while admin queries load.",
+        "If a background admin query fails with a non-auth error, AdminGate still renders its children and does not switch back to AdminLogin.",
+        "If the backend explicitly rejects the token as invalid/expired, the session is cleared and the AdminLogin screen is shown."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/AdminGate.tsx",
+          "operation": "modify",
+          "description": "Keep AdminGate authentication decisions strictly based on presence of a stored admin session (useAdminSession) and avoid any coupling to background query error states; ensure it only transitions to AdminLogin when adminSession is explicitly cleared (which should now only occur on explicit invalid/expired token detection)."
+        },
+        {
+          "path": "frontend/src/components/admin/OrdersAdmin.tsx",
+          "operation": "modify",
+          "description": "Confirm admin dashboard remains rendered on non-auth query failures by continuing to show an in-place English error state (Alert/toast) without triggering any local session clearing; rely on updated hooks for token invalidation behavior."
+        }
+      ]
+    }
+  ]
+}
