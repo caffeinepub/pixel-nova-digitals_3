@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { useGetAppContent } from '@/hooks/useQueries';
 
 interface HeroSectionProps {
   onScrollToServices: () => void;
@@ -12,6 +13,11 @@ export default function HeroSection({
   onScrollToContact,
   onOpenOrderDialog,
 }: HeroSectionProps) {
+  const { data: appContent } = useGetAppContent();
+
+  // Use editable content with fallbacks
+  const description = appContent?.description || 'Professional Freelancing Services for Businesses & Content Creators';
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       <div
@@ -41,7 +47,7 @@ export default function HeroSection({
           </h1>
 
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Professional Freelancing Services for Businesses & Content Creators
+            {description}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">

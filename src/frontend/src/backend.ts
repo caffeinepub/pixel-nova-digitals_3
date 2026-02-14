@@ -89,18 +89,52 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface NewOrder {
+export interface Product {
     id: bigint;
-    service: string;
-    owner?: Principal;
-    whatsapp: string;
-    fullName: string;
+    files: Array<FileData>;
+    name: string;
     description: string;
-    deliveryTime: string;
-    fileUpload: Uint8Array;
+    price: bigint;
+}
+export interface AppContent {
+    metaDescription: string;
+    tiktok: string;
+    metaKeywords: string;
+    mail: string;
+    whatsapp: string;
+    description: string;
+    facebook: string;
+    address: string;
+    titleTag: string;
+    telegram: string;
+}
+export type AdminAuthResult = {
+    __kind__: "ok";
+    ok: string;
+} | {
+    __kind__: "err";
+    err: string;
+};
+export interface OrderedProduct {
+    productId: bigint;
+    quantity: bigint;
+}
+export interface FileData {
+    fileData: string;
+    fileName: string;
+    fileType: string;
+}
+export interface ContactInfo {
     email: string;
-    timestamp: bigint;
-    budget: string;
+    address: string;
+    phone: string;
+}
+export interface Order {
+    id: bigint;
+    total: bigint;
+    userId: Principal;
+    isPaid: boolean;
+    products: Array<OrderedProduct>;
 }
 export interface UserProfile {
     name: string;
@@ -112,59 +146,30 @@ export enum UserRole {
 }
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
-    adminLogin(email: string, password: string): Promise<{
-        __kind__: "ok";
-        ok: string;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
-    adminLogout(token: string): Promise<{
-        __kind__: "ok";
-        ok: null;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
+    addProduct(name: string, price: bigint, description: string, files: Array<FileData>): Promise<Product>;
+    adminExists(): Promise<boolean>;
+    adminLogin(email: string, password: string): Promise<AdminAuthResult>;
+    adminLogout(token: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createOrder(service: string, fullName: string, email: string, whatsapp: string, description: string, fileUpload: Uint8Array, budget: string, deliveryTime: string): Promise<bigint>;
-    deleteOrderWithToken(token: string, id: bigint): Promise<{
-        __kind__: "ok";
-        ok: null;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
-    downloadFileWithToken(token: string, orderId: bigint): Promise<{
-        __kind__: "ok";
-        ok: Uint8Array;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
-    getAllOrders(): Promise<Array<NewOrder>>;
-    getAllOrdersWithToken(token: string): Promise<{
-        __kind__: "ok";
-        ok: Array<NewOrder>;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
+    createDefaultAdmin(): Promise<boolean>;
+    createOrder(orderedProducts: Array<OrderedProduct>): Promise<Order>;
+    deleteOrderWithToken(_token: string, orderId: bigint): Promise<void>;
+    downloadFileWithToken(_token: string, productId: bigint): Promise<FileData>;
+    getAllOrdersWithToken(_token: string): Promise<Array<Order>>;
+    getAppContent(): Promise<AppContent>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getOrder(id: bigint): Promise<NewOrder>;
-    getOrderDetailWithToken(token: string, id: bigint): Promise<{
-        __kind__: "ok";
-        ok: NewOrder;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
+    getContactInfo(): Promise<ContactInfo>;
+    getMyOrders(): Promise<Array<Order>>;
+    getOrderDetailWithToken(_token: string, orderId: bigint): Promise<Order>;
+    getProducts(): Promise<Array<Product>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateAppContent(newAppContent: AppContent): Promise<void>;
+    updateContactInfo(newContactInfo: ContactInfo): Promise<void>;
 }
-import type { NewOrder as _NewOrder, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { AdminAuthResult as _AdminAuthResult, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -181,44 +186,60 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async adminLogin(arg0: string, arg1: string): Promise<{
-        __kind__: "ok";
-        ok: string;
-    } | {
-        __kind__: "err";
-        err: string;
-    }> {
+    async addProduct(arg0: string, arg1: bigint, arg2: string, arg3: Array<FileData>): Promise<Product> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addProduct(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addProduct(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
+    async adminExists(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adminExists();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adminExists();
+            return result;
+        }
+    }
+    async adminLogin(arg0: string, arg1: string): Promise<AdminAuthResult> {
         if (this.processError) {
             try {
                 const result = await this.actor.adminLogin(arg0, arg1);
-                return from_candid_variant_n1(this._uploadFile, this._downloadFile, result);
+                return from_candid_AdminAuthResult_n1(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.adminLogin(arg0, arg1);
-            return from_candid_variant_n1(this._uploadFile, this._downloadFile, result);
+            return from_candid_AdminAuthResult_n1(this._uploadFile, this._downloadFile, result);
         }
     }
-    async adminLogout(arg0: string): Promise<{
-        __kind__: "ok";
-        ok: null;
-    } | {
-        __kind__: "err";
-        err: string;
-    }> {
+    async adminLogout(arg0: string): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.adminLogout(arg0);
-                return from_candid_variant_n2(this._uploadFile, this._downloadFile, result);
+                return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.adminLogout(arg0);
-            return from_candid_variant_n2(this._uploadFile, this._downloadFile, result);
+            return result;
         }
     }
     async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
@@ -235,168 +256,186 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createOrder(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string, arg5: Uint8Array, arg6: string, arg7: string): Promise<bigint> {
+    async createDefaultAdmin(): Promise<boolean> {
         if (this.processError) {
             try {
-                const result = await this.actor.createOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                const result = await this.actor.createDefaultAdmin();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            const result = await this.actor.createDefaultAdmin();
             return result;
         }
     }
-    async deleteOrderWithToken(arg0: string, arg1: bigint): Promise<{
-        __kind__: "ok";
-        ok: null;
-    } | {
-        __kind__: "err";
-        err: string;
-    }> {
+    async createOrder(arg0: Array<OrderedProduct>): Promise<Order> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createOrder(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createOrder(arg0);
+            return result;
+        }
+    }
+    async deleteOrderWithToken(arg0: string, arg1: bigint): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.deleteOrderWithToken(arg0, arg1);
-                return from_candid_variant_n2(this._uploadFile, this._downloadFile, result);
+                return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.deleteOrderWithToken(arg0, arg1);
-            return from_candid_variant_n2(this._uploadFile, this._downloadFile, result);
+            return result;
         }
     }
-    async downloadFileWithToken(arg0: string, arg1: bigint): Promise<{
-        __kind__: "ok";
-        ok: Uint8Array;
-    } | {
-        __kind__: "err";
-        err: string;
-    }> {
+    async downloadFileWithToken(arg0: string, arg1: bigint): Promise<FileData> {
         if (this.processError) {
             try {
                 const result = await this.actor.downloadFileWithToken(arg0, arg1);
-                return from_candid_variant_n5(this._uploadFile, this._downloadFile, result);
+                return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.downloadFileWithToken(arg0, arg1);
-            return from_candid_variant_n5(this._uploadFile, this._downloadFile, result);
+            return result;
         }
     }
-    async getAllOrders(): Promise<Array<NewOrder>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getAllOrders();
-                return from_candid_vec_n6(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getAllOrders();
-            return from_candid_vec_n6(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getAllOrdersWithToken(arg0: string): Promise<{
-        __kind__: "ok";
-        ok: Array<NewOrder>;
-    } | {
-        __kind__: "err";
-        err: string;
-    }> {
+    async getAllOrdersWithToken(arg0: string): Promise<Array<Order>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllOrdersWithToken(arg0);
-                return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
+                return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAllOrdersWithToken(arg0);
-            return from_candid_variant_n10(this._uploadFile, this._downloadFile, result);
+            return result;
+        }
+    }
+    async getAppContent(): Promise<AppContent> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAppContent();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAppContent();
+            return result;
         }
     }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n12(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n6(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n12(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n6(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getOrder(arg0: bigint): Promise<NewOrder> {
+    async getContactInfo(): Promise<ContactInfo> {
         if (this.processError) {
             try {
-                const result = await this.actor.getOrder(arg0);
-                return from_candid_NewOrder_n7(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.getContactInfo();
+                return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getOrder(arg0);
-            return from_candid_NewOrder_n7(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.getContactInfo();
+            return result;
         }
     }
-    async getOrderDetailWithToken(arg0: string, arg1: bigint): Promise<{
-        __kind__: "ok";
-        ok: NewOrder;
-    } | {
-        __kind__: "err";
-        err: string;
-    }> {
+    async getMyOrders(): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyOrders();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyOrders();
+            return result;
+        }
+    }
+    async getOrderDetailWithToken(arg0: string, arg1: bigint): Promise<Order> {
         if (this.processError) {
             try {
                 const result = await this.actor.getOrderDetailWithToken(arg0, arg1);
-                return from_candid_variant_n14(this._uploadFile, this._downloadFile, result);
+                return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getOrderDetailWithToken(arg0, arg1);
-            return from_candid_variant_n14(this._uploadFile, this._downloadFile, result);
+            return result;
+        }
+    }
+    async getProducts(): Promise<Array<Product>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getProducts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getProducts();
+            return result;
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -427,59 +466,45 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateAppContent(arg0: AppContent): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateAppContent(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateAppContent(arg0);
+            return result;
+        }
+    }
+    async updateContactInfo(arg0: ContactInfo): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateContactInfo(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateContactInfo(arg0);
+            return result;
+        }
+    }
 }
-function from_candid_NewOrder_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _NewOrder): NewOrder {
-    return from_candid_record_n8(_uploadFile, _downloadFile, value);
+function from_candid_AdminAuthResult_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AdminAuthResult): AdminAuthResult {
+    return from_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n13(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n7(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+function from_candid_opt_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Principal]): Principal | null {
-    return value.length === 0 ? null : value[0];
-}
-function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    id: bigint;
-    service: string;
-    owner: [] | [Principal];
-    whatsapp: string;
-    fullName: string;
-    description: string;
-    deliveryTime: string;
-    fileUpload: Uint8Array;
-    email: string;
-    timestamp: bigint;
-    budget: string;
-}): {
-    id: bigint;
-    service: string;
-    owner?: Principal;
-    whatsapp: string;
-    fullName: string;
-    description: string;
-    deliveryTime: string;
-    fileUpload: Uint8Array;
-    email: string;
-    timestamp: bigint;
-    budget: string;
-} {
-    return {
-        id: value.id,
-        service: value.service,
-        owner: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.owner)),
-        whatsapp: value.whatsapp,
-        fullName: value.fullName,
-        description: value.description,
-        deliveryTime: value.deliveryTime,
-        fileUpload: value.fileUpload,
-        email: value.email,
-        timestamp: value.timestamp,
-        budget: value.budget
-    };
-}
-function from_candid_variant_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     ok: string;
 } | {
     err: string;
@@ -498,26 +523,7 @@ function from_candid_variant_n1(_uploadFile: (file: ExternalBlob) => Promise<Uin
         err: value.err
     } : value;
 }
-function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    ok: Array<_NewOrder>;
-} | {
-    err: string;
-}): {
-    __kind__: "ok";
-    ok: Array<NewOrder>;
-} | {
-    __kind__: "err";
-    err: string;
-} {
-    return "ok" in value ? {
-        __kind__: "ok",
-        ok: from_candid_vec_n6(_uploadFile, _downloadFile, value.ok)
-    } : "err" in value ? {
-        __kind__: "err",
-        err: value.err
-    } : value;
-}
-function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -525,66 +531,6 @@ function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Ui
     guest: null;
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
-}
-function from_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    ok: _NewOrder;
-} | {
-    err: string;
-}): {
-    __kind__: "ok";
-    ok: NewOrder;
-} | {
-    __kind__: "err";
-    err: string;
-} {
-    return "ok" in value ? {
-        __kind__: "ok",
-        ok: from_candid_NewOrder_n7(_uploadFile, _downloadFile, value.ok)
-    } : "err" in value ? {
-        __kind__: "err",
-        err: value.err
-    } : value;
-}
-function from_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    ok: null;
-} | {
-    err: string;
-}): {
-    __kind__: "ok";
-    ok: null;
-} | {
-    __kind__: "err";
-    err: string;
-} {
-    return "ok" in value ? {
-        __kind__: "ok",
-        ok: value.ok
-    } : "err" in value ? {
-        __kind__: "err",
-        err: value.err
-    } : value;
-}
-function from_candid_variant_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    ok: Uint8Array;
-} | {
-    err: string;
-}): {
-    __kind__: "ok";
-    ok: Uint8Array;
-} | {
-    __kind__: "err";
-    err: string;
-} {
-    return "ok" in value ? {
-        __kind__: "ok",
-        ok: value.ok
-    } : "err" in value ? {
-        __kind__: "err",
-        err: value.err
-    } : value;
-}
-function from_candid_vec_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_NewOrder>): Array<NewOrder> {
-    return value.map((x)=>from_candid_NewOrder_n7(_uploadFile, _downloadFile, x));
 }
 function to_candid_UserRole_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n4(_uploadFile, _downloadFile, value);

@@ -17,10 +17,13 @@ export function isInvalidTokenError(error: unknown): boolean {
 
   // Exact match for the backend's token error message
   // Backend returns: "Invalid or expired admin session token"
-  const exactMatch = message === 'Invalid or expired admin session token';
+  const exactMatch = message.includes('Invalid or expired admin session token');
   
-  // Also check for the normalized version that might come through error handling
+  // Also check for role-related errors that indicate token/permission issues
+  const roleMatch = message.includes('no admin role');
+  
+  // Check for the normalized version that might come through error handling
   const normalizedMatch = message === 'Session expired. Please log in again.';
   
-  return exactMatch || normalizedMatch;
+  return exactMatch || roleMatch || normalizedMatch;
 }

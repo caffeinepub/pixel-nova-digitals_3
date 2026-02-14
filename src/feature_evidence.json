@@ -2,12 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-stop-the-admin-login-redirect-loop-by-ensuring-the-frontend-does-not-clear-the-stored-admin-session-token-due-to-non-auth-or-ambiguous-errors-during-admin-data-fetching-orders-list-order-detail-download-file-delete-order-only-clear-the-local-session-when-the-backend-explicitly-indicates-the-token-is-invalid-expired-via-the-token-based-endpoints",
-      "featureTitle": "Stop the Admin Login redirect loop by ensuring the frontend does not clear the stored admin session token due to non-auth or ambiguous errors during admin data fetching (orders list, order detail, download file, delete order). Only clear the local session when the backend explicitly indicates the token is invalid/expired via the token-based endpoints.",
+      "featureId": "feature-remove-all-frontend-authentication-gating-for-the-admin-panel-so-that-navigating-to-the-admin-view-always-renders-the-admin-dashboard-without-showing-adminlogin-adminbootstrap-screens",
+      "featureTitle": "Remove all frontend authentication gating for the Admin Panel so that navigating to the Admin view always renders the admin dashboard without showing AdminLogin/AdminBootstrap screens.",
       "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/utils/adminTokenError.ts",
-        "frontend/src/utils/userFacingError.ts"
+        "frontend/src/components/admin/AdminBootstrap.tsx",
+        "frontend/src/components/admin/AdminGate.tsx",
+        "frontend/src/components/admin/AdminLogin.tsx",
+        "frontend/src/pages/admin/AdminPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,16 +19,18 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-68"
+        "REQ-1"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-admingate-flow-remains-stable-immediately-after-login-once-a-token-is-stored-in-sessionstorage-admingate-must-treat-the-user-as-authenticated-and-must-not-revert-to-the-login-screen-due-to-background-queries-unless-the-backend-explicitly-rejects-the-token-as-invalid-expired",
-      "featureTitle": "Ensure the AdminGate flow remains stable immediately after login: once a token is stored in sessionStorage, AdminGate must treat the user as authenticated and must not revert to the login screen due to background queries unless the backend explicitly rejects the token as invalid/expired.",
+      "featureId": "feature-update-admin-related-react-query-hooks-and-admin-ui-flows-to-stop-using-admin-session-storage-and-token-based-admin-calls-e-g-getallorderswithtoken-deleteorderwithtoken-downloadfilewithtoken-getorderdetailwithtoken-and-instead-call-non-token-backend-methods-that-work-for-any-visitor",
+      "featureTitle": "Update admin-related React Query hooks and admin UI flows to stop using admin session storage and token-based admin calls (e.g., getAllOrdersWithToken/deleteOrderWithToken/downloadFileWithToken/getOrderDetailWithToken), and instead call non-token backend methods that work for any visitor.",
       "files": [
-        "frontend/src/components/admin/AdminGate.tsx",
-        "frontend/src/components/admin/OrdersAdmin.tsx"
+        "frontend/src/components/admin/OrdersAdmin.tsx",
+        "frontend/src/hooks/useAdminAuth.ts",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/types/extended-backend.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -38,7 +41,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-70"
+        "REQ-2"
       ],
       "confidence": "high"
     }

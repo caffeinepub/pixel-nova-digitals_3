@@ -7,18 +7,52 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface NewOrder {
+export interface Product {
     id: bigint;
-    service: string;
-    owner?: Principal;
-    whatsapp: string;
-    fullName: string;
+    files: Array<FileData>;
+    name: string;
     description: string;
-    deliveryTime: string;
-    fileUpload: Uint8Array;
+    price: bigint;
+}
+export interface AppContent {
+    metaDescription: string;
+    tiktok: string;
+    metaKeywords: string;
+    mail: string;
+    whatsapp: string;
+    description: string;
+    facebook: string;
+    address: string;
+    titleTag: string;
+    telegram: string;
+}
+export type AdminAuthResult = {
+    __kind__: "ok";
+    ok: string;
+} | {
+    __kind__: "err";
+    err: string;
+};
+export interface OrderedProduct {
+    productId: bigint;
+    quantity: bigint;
+}
+export interface FileData {
+    fileData: string;
+    fileName: string;
+    fileType: string;
+}
+export interface ContactInfo {
     email: string;
-    timestamp: bigint;
-    budget: string;
+    address: string;
+    phone: string;
+}
+export interface Order {
+    id: bigint;
+    total: bigint;
+    userId: Principal;
+    isPaid: boolean;
+    products: Array<OrderedProduct>;
 }
 export interface UserProfile {
     name: string;
@@ -29,55 +63,26 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    adminLogin(email: string, password: string): Promise<{
-        __kind__: "ok";
-        ok: string;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
-    adminLogout(token: string): Promise<{
-        __kind__: "ok";
-        ok: null;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
+    addProduct(name: string, price: bigint, description: string, files: Array<FileData>): Promise<Product>;
+    adminExists(): Promise<boolean>;
+    adminLogin(email: string, password: string): Promise<AdminAuthResult>;
+    adminLogout(token: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createOrder(service: string, fullName: string, email: string, whatsapp: string, description: string, fileUpload: Uint8Array, budget: string, deliveryTime: string): Promise<bigint>;
-    deleteOrderWithToken(token: string, id: bigint): Promise<{
-        __kind__: "ok";
-        ok: null;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
-    downloadFileWithToken(token: string, orderId: bigint): Promise<{
-        __kind__: "ok";
-        ok: Uint8Array;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
-    getAllOrders(): Promise<Array<NewOrder>>;
-    getAllOrdersWithToken(token: string): Promise<{
-        __kind__: "ok";
-        ok: Array<NewOrder>;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
+    createDefaultAdmin(): Promise<boolean>;
+    createOrder(orderedProducts: Array<OrderedProduct>): Promise<Order>;
+    deleteOrderWithToken(_token: string, orderId: bigint): Promise<void>;
+    downloadFileWithToken(_token: string, productId: bigint): Promise<FileData>;
+    getAllOrdersWithToken(_token: string): Promise<Array<Order>>;
+    getAppContent(): Promise<AppContent>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getOrder(id: bigint): Promise<NewOrder>;
-    getOrderDetailWithToken(token: string, id: bigint): Promise<{
-        __kind__: "ok";
-        ok: NewOrder;
-    } | {
-        __kind__: "err";
-        err: string;
-    }>;
+    getContactInfo(): Promise<ContactInfo>;
+    getMyOrders(): Promise<Array<Order>>;
+    getOrderDetailWithToken(_token: string, orderId: bigint): Promise<Order>;
+    getProducts(): Promise<Array<Product>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateAppContent(newAppContent: AppContent): Promise<void>;
+    updateContactInfo(newContactInfo: ContactInfo): Promise<void>;
 }

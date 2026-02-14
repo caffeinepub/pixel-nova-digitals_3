@@ -8,77 +8,84 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const FileData = IDL.Record({
+  'fileData' : IDL.Text,
+  'fileName' : IDL.Text,
+  'fileType' : IDL.Text,
+});
+export const Product = IDL.Record({
+  'id' : IDL.Nat,
+  'files' : IDL.Vec(FileData),
+  'name' : IDL.Text,
+  'description' : IDL.Text,
+  'price' : IDL.Int,
+});
+export const AdminAuthResult = IDL.Variant({
+  'ok' : IDL.Text,
+  'err' : IDL.Text,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const NewOrder = IDL.Record({
+export const OrderedProduct = IDL.Record({
+  'productId' : IDL.Nat,
+  'quantity' : IDL.Nat,
+});
+export const Order = IDL.Record({
   'id' : IDL.Nat,
-  'service' : IDL.Text,
-  'owner' : IDL.Opt(IDL.Principal),
+  'total' : IDL.Int,
+  'userId' : IDL.Principal,
+  'isPaid' : IDL.Bool,
+  'products' : IDL.Vec(OrderedProduct),
+});
+export const AppContent = IDL.Record({
+  'metaDescription' : IDL.Text,
+  'tiktok' : IDL.Text,
+  'metaKeywords' : IDL.Text,
+  'mail' : IDL.Text,
   'whatsapp' : IDL.Text,
-  'fullName' : IDL.Text,
   'description' : IDL.Text,
-  'deliveryTime' : IDL.Text,
-  'fileUpload' : IDL.Vec(IDL.Nat8),
-  'email' : IDL.Text,
-  'timestamp' : IDL.Int,
-  'budget' : IDL.Text,
+  'facebook' : IDL.Text,
+  'address' : IDL.Text,
+  'titleTag' : IDL.Text,
+  'telegram' : IDL.Text,
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const ContactInfo = IDL.Record({
+  'email' : IDL.Text,
+  'address' : IDL.Text,
+  'phone' : IDL.Text,
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'adminLogin' : IDL.Func(
-      [IDL.Text, IDL.Text],
-      [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+  'addProduct' : IDL.Func(
+      [IDL.Text, IDL.Int, IDL.Text, IDL.Vec(FileData)],
+      [Product],
       [],
     ),
-  'adminLogout' : IDL.Func(
-      [IDL.Text],
-      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
-      [],
-    ),
+  'adminExists' : IDL.Func([], [IDL.Bool], ['query']),
+  'adminLogin' : IDL.Func([IDL.Text, IDL.Text], [AdminAuthResult], []),
+  'adminLogout' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'createOrder' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Vec(IDL.Nat8),
-        IDL.Text,
-        IDL.Text,
-      ],
-      [IDL.Nat],
-      [],
-    ),
-  'deleteOrderWithToken' : IDL.Func(
-      [IDL.Text, IDL.Nat],
-      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
-      [],
-    ),
+  'createDefaultAdmin' : IDL.Func([], [IDL.Bool], []),
+  'createOrder' : IDL.Func([IDL.Vec(OrderedProduct)], [Order], []),
+  'deleteOrderWithToken' : IDL.Func([IDL.Text, IDL.Nat], [], []),
   'downloadFileWithToken' : IDL.Func(
       [IDL.Text, IDL.Nat],
-      [IDL.Variant({ 'ok' : IDL.Vec(IDL.Nat8), 'err' : IDL.Text })],
-      [],
+      [FileData],
+      ['query'],
     ),
-  'getAllOrders' : IDL.Func([], [IDL.Vec(NewOrder)], ['query']),
-  'getAllOrdersWithToken' : IDL.Func(
-      [IDL.Text],
-      [IDL.Variant({ 'ok' : IDL.Vec(NewOrder), 'err' : IDL.Text })],
-      [],
-    ),
+  'getAllOrdersWithToken' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
+  'getAppContent' : IDL.Func([], [AppContent], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getOrder' : IDL.Func([IDL.Nat], [NewOrder], ['query']),
-  'getOrderDetailWithToken' : IDL.Func(
-      [IDL.Text, IDL.Nat],
-      [IDL.Variant({ 'ok' : NewOrder, 'err' : IDL.Text })],
-      [],
-    ),
+  'getContactInfo' : IDL.Func([], [ContactInfo], ['query']),
+  'getMyOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+  'getOrderDetailWithToken' : IDL.Func([IDL.Text, IDL.Nat], [Order], ['query']),
+  'getProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -86,82 +93,92 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateAppContent' : IDL.Func([AppContent], [], []),
+  'updateContactInfo' : IDL.Func([ContactInfo], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const FileData = IDL.Record({
+    'fileData' : IDL.Text,
+    'fileName' : IDL.Text,
+    'fileType' : IDL.Text,
+  });
+  const Product = IDL.Record({
+    'id' : IDL.Nat,
+    'files' : IDL.Vec(FileData),
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'price' : IDL.Int,
+  });
+  const AdminAuthResult = IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const NewOrder = IDL.Record({
+  const OrderedProduct = IDL.Record({
+    'productId' : IDL.Nat,
+    'quantity' : IDL.Nat,
+  });
+  const Order = IDL.Record({
     'id' : IDL.Nat,
-    'service' : IDL.Text,
-    'owner' : IDL.Opt(IDL.Principal),
+    'total' : IDL.Int,
+    'userId' : IDL.Principal,
+    'isPaid' : IDL.Bool,
+    'products' : IDL.Vec(OrderedProduct),
+  });
+  const AppContent = IDL.Record({
+    'metaDescription' : IDL.Text,
+    'tiktok' : IDL.Text,
+    'metaKeywords' : IDL.Text,
+    'mail' : IDL.Text,
     'whatsapp' : IDL.Text,
-    'fullName' : IDL.Text,
     'description' : IDL.Text,
-    'deliveryTime' : IDL.Text,
-    'fileUpload' : IDL.Vec(IDL.Nat8),
-    'email' : IDL.Text,
-    'timestamp' : IDL.Int,
-    'budget' : IDL.Text,
+    'facebook' : IDL.Text,
+    'address' : IDL.Text,
+    'titleTag' : IDL.Text,
+    'telegram' : IDL.Text,
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const ContactInfo = IDL.Record({
+    'email' : IDL.Text,
+    'address' : IDL.Text,
+    'phone' : IDL.Text,
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'adminLogin' : IDL.Func(
-        [IDL.Text, IDL.Text],
-        [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+    'addProduct' : IDL.Func(
+        [IDL.Text, IDL.Int, IDL.Text, IDL.Vec(FileData)],
+        [Product],
         [],
       ),
-    'adminLogout' : IDL.Func(
-        [IDL.Text],
-        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
-        [],
-      ),
+    'adminExists' : IDL.Func([], [IDL.Bool], ['query']),
+    'adminLogin' : IDL.Func([IDL.Text, IDL.Text], [AdminAuthResult], []),
+    'adminLogout' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'createOrder' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Vec(IDL.Nat8),
-          IDL.Text,
-          IDL.Text,
-        ],
-        [IDL.Nat],
-        [],
-      ),
-    'deleteOrderWithToken' : IDL.Func(
-        [IDL.Text, IDL.Nat],
-        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
-        [],
-      ),
+    'createDefaultAdmin' : IDL.Func([], [IDL.Bool], []),
+    'createOrder' : IDL.Func([IDL.Vec(OrderedProduct)], [Order], []),
+    'deleteOrderWithToken' : IDL.Func([IDL.Text, IDL.Nat], [], []),
     'downloadFileWithToken' : IDL.Func(
         [IDL.Text, IDL.Nat],
-        [IDL.Variant({ 'ok' : IDL.Vec(IDL.Nat8), 'err' : IDL.Text })],
-        [],
+        [FileData],
+        ['query'],
       ),
-    'getAllOrders' : IDL.Func([], [IDL.Vec(NewOrder)], ['query']),
-    'getAllOrdersWithToken' : IDL.Func(
-        [IDL.Text],
-        [IDL.Variant({ 'ok' : IDL.Vec(NewOrder), 'err' : IDL.Text })],
-        [],
-      ),
+    'getAllOrdersWithToken' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
+    'getAppContent' : IDL.Func([], [AppContent], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getOrder' : IDL.Func([IDL.Nat], [NewOrder], ['query']),
+    'getContactInfo' : IDL.Func([], [ContactInfo], ['query']),
+    'getMyOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getOrderDetailWithToken' : IDL.Func(
         [IDL.Text, IDL.Nat],
-        [IDL.Variant({ 'ok' : NewOrder, 'err' : IDL.Text })],
-        [],
+        [Order],
+        ['query'],
       ),
+    'getProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -169,6 +186,8 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateAppContent' : IDL.Func([AppContent], [], []),
+    'updateContactInfo' : IDL.Func([ContactInfo], [], []),
   });
 };
 

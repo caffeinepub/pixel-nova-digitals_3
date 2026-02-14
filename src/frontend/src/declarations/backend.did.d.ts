@@ -10,18 +10,44 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface NewOrder {
-  'id' : bigint,
-  'service' : string,
-  'owner' : [] | [Principal],
+export type AdminAuthResult = { 'ok' : string } |
+  { 'err' : string };
+export interface AppContent {
+  'metaDescription' : string,
+  'tiktok' : string,
+  'metaKeywords' : string,
+  'mail' : string,
   'whatsapp' : string,
-  'fullName' : string,
   'description' : string,
-  'deliveryTime' : string,
-  'fileUpload' : Uint8Array,
+  'facebook' : string,
+  'address' : string,
+  'titleTag' : string,
+  'telegram' : string,
+}
+export interface ContactInfo {
   'email' : string,
-  'timestamp' : bigint,
-  'budget' : string,
+  'address' : string,
+  'phone' : string,
+}
+export interface FileData {
+  'fileData' : string,
+  'fileName' : string,
+  'fileType' : string,
+}
+export interface Order {
+  'id' : bigint,
+  'total' : bigint,
+  'userId' : Principal,
+  'isPaid' : boolean,
+  'products' : Array<OrderedProduct>,
+}
+export interface OrderedProduct { 'productId' : bigint, 'quantity' : bigint }
+export interface Product {
+  'id' : bigint,
+  'files' : Array<FileData>,
+  'name' : string,
+  'description' : string,
+  'price' : bigint,
 }
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
@@ -29,44 +55,31 @@ export type UserRole = { 'admin' : null } |
   { 'guest' : null };
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'adminLogin' : ActorMethod<
-    [string, string],
-    { 'ok' : string } |
-      { 'err' : string }
+  'addProduct' : ActorMethod<
+    [string, bigint, string, Array<FileData>],
+    Product
   >,
-  'adminLogout' : ActorMethod<[string], { 'ok' : null } | { 'err' : string }>,
+  'adminExists' : ActorMethod<[], boolean>,
+  'adminLogin' : ActorMethod<[string, string], AdminAuthResult>,
+  'adminLogout' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'createOrder' : ActorMethod<
-    [string, string, string, string, string, Uint8Array, string, string],
-    bigint
-  >,
-  'deleteOrderWithToken' : ActorMethod<
-    [string, bigint],
-    { 'ok' : null } |
-      { 'err' : string }
-  >,
-  'downloadFileWithToken' : ActorMethod<
-    [string, bigint],
-    { 'ok' : Uint8Array } |
-      { 'err' : string }
-  >,
-  'getAllOrders' : ActorMethod<[], Array<NewOrder>>,
-  'getAllOrdersWithToken' : ActorMethod<
-    [string],
-    { 'ok' : Array<NewOrder> } |
-      { 'err' : string }
-  >,
+  'createDefaultAdmin' : ActorMethod<[], boolean>,
+  'createOrder' : ActorMethod<[Array<OrderedProduct>], Order>,
+  'deleteOrderWithToken' : ActorMethod<[string, bigint], undefined>,
+  'downloadFileWithToken' : ActorMethod<[string, bigint], FileData>,
+  'getAllOrdersWithToken' : ActorMethod<[string], Array<Order>>,
+  'getAppContent' : ActorMethod<[], AppContent>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getOrder' : ActorMethod<[bigint], NewOrder>,
-  'getOrderDetailWithToken' : ActorMethod<
-    [string, bigint],
-    { 'ok' : NewOrder } |
-      { 'err' : string }
-  >,
+  'getContactInfo' : ActorMethod<[], ContactInfo>,
+  'getMyOrders' : ActorMethod<[], Array<Order>>,
+  'getOrderDetailWithToken' : ActorMethod<[string, bigint], Order>,
+  'getProducts' : ActorMethod<[], Array<Product>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateAppContent' : ActorMethod<[AppContent], undefined>,
+  'updateContactInfo' : ActorMethod<[ContactInfo], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

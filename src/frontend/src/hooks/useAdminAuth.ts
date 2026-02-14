@@ -1,89 +1,114 @@
-import { useState } from 'react';
 import { useActor } from './useActor';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminSession } from '@/utils/adminSession';
 import { normalizeError } from '@/utils/userFacingError';
+import { normalizeAdminAuthResult } from '@/utils/adminAuthResult';
+import { useAdminSession } from './useAdminSession';
+import { traceAuthTransition } from '@/utils/adminAuthDiagnostics';
+import { verifyAdminToken } from '@/utils/adminAuthVerification';
+import type { ExtendedBackendInterface } from '@/types/extended-backend';
 
+/**
+ * Admin authentication hook - DEPRECATED
+ * Admin panel is now publicly accessible and does not require authentication.
+ * This hook is retained for backward compatibility but is no longer used for access control.
+ */
 export function useAdminAuth() {
   const { actor } = useActor();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { isAuthenticated, username } = useAdminSession();
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  const loginMutation = useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
       if (!actor) {
-        const errorMsg = 'Backend connection not available';
-        setError(errorMsg);
-        return { success: false, error: errorMsg };
+        throw new Error('Backend connection not available');
       }
 
-      const result = await actor.adminLogin(email, password);
-      
-      // Handle Result type response
-      if (result.__kind__ === 'err') {
-        const errorMsg = result.err;
-        setError(errorMsg);
-        return { success: false, error: errorMsg };
+      const extendedActor = actor as unknown as ExtendedBackendInterface;
+      if (typeof extendedActor.adminLogin !== 'function') {
+        throw new Error('Admin login is not available');
       }
 
-      const token = result.ok;
+      const result = await extendedActor.adminLogin(email, password);
       
-      // Store session with token and email as username
-      adminSession.set({
-        token,
-        username: email.split('@')[0], // Use email prefix as display name
-        expiresAt: undefined // Backend manages expiry
-      });
+      // Normalize the response to handle both Result-style and Motoko-variant-style
+      const normalized = normalizeAdminAuthResult(result);
       
-      return { success: true };
-    } catch (err: any) {
-      console.error('Login error:', err);
-      const errorMsg = normalizeError(err);
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (normalized.errMessage) {
+        throw new Error(normalized.errMessage);
+      }
 
-  const logout = async (): Promise<void> => {
-    setIsLoading(true);
-    setError(null);
+      if (!normalized.okToken) {
+        throw new Error('No token received from server');
+      }
 
+      return { token: normalized.okToken, email };
+    },
+    onSuccess: async ({ token, email }) => {
+      if (!token || token.trim().length === 0) {
+        throw new Error('Invalid token received');
+      }
+
+      // Store the session temporarily
+      adminSession.set({ token, username: email });
+      traceAuthTransition('Login success, verifying token', email);
+
+      // Verify the token works before completing login
+      const verification = await verifyAdminToken(actor, token);
+
+      if (!verification.success) {
+        // Verification failed - clear the session immediately
+        traceAuthTransition('Token verification failed', verification.errorReason);
+        adminSession.clearWithReason(
+          verification.errorReason || 'Unable to verify your session. Please try again.'
+        );
+        throw new Error(verification.errorReason || 'Session verification failed');
+      }
+
+      traceAuthTransition('Token verification passed', email);
+    },
+    onError: (err: any) => {
+      const errorMessage = normalizeError(err);
+      console.error('Login error:', errorMessage);
+      // Clear any session that might have been set
+      adminSession.clear();
+    },
+  });
+
+  const login = async (email: string, password: string) => {
     try {
-      const session = adminSession.get();
-      if (session && actor) {
-        try {
-          const result = await actor.adminLogout(session.token);
-          if (result.__kind__ === 'err') {
-            console.error('Backend logout error:', result.err);
-          }
-        } catch (err) {
-          console.error('Backend logout error:', err);
-          // Continue with local logout even if backend call fails
-        }
-      }
-      adminSession.clear();
-    } catch (err: any) {
-      console.error('Logout error:', err);
-      // Always clear session locally even if backend call fails
-      adminSession.clear();
-    } finally {
-      setIsLoading(false);
+      await loginMutation.mutateAsync({ email, password });
+    } catch (err) {
+      // Error is already handled by onError callback
+      throw err;
     }
   };
 
-  const isAuthenticated = (): boolean => {
-    return adminSession.get() !== null;
+  const logout = async () => {
+    const currentSession = adminSession.get();
+    
+    if (currentSession?.token && actor) {
+      try {
+        const extendedActor = actor as unknown as ExtendedBackendInterface;
+        if (typeof extendedActor.adminLogout === 'function') {
+          await extendedActor.adminLogout(currentSession.token);
+        }
+      } catch (err) {
+        console.error('Error during logout:', err);
+      }
+    }
+
+    traceAuthTransition('Explicit logout');
+    adminSession.clear();
+    queryClient.clear();
   };
 
   return {
     login,
     logout,
     isAuthenticated,
-    isLoading,
-    error
+    isLoading: loginMutation.isPending,
+    error: loginMutation.error ? normalizeError(loginMutation.error) : null,
+    username,
   };
 }

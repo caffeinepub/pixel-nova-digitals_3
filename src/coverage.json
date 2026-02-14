@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T14:37:56.815Z",
+  "generatedAt": "2026-02-14T18:31:33.440Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,39 +11,47 @@
     "implemented": 2,
     "items": [
       {
-        "id": "REQ-68",
-        "summary": "Stop the Admin Login redirect loop by ensuring the frontend does not clear the stored admin session token due to non-auth or ambiguous errors during admin data fetching (orders list, order detail, download file, delete order). Only clear the local session when the backend explicitly indicates the token is invalid/expired via the token-based endpoints.",
+        "id": "REQ-1",
+        "summary": "Remove all frontend authentication gating for the Admin Panel so that navigating to the Admin view always renders the admin dashboard without showing AdminLogin/AdminBootstrap screens.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/adminTokenError.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/utils/userFacingError.ts"
+          "frontend/src/components/admin/AdminGate.tsx",
+          "frontend/src/pages/admin/AdminPage.tsx",
+          "frontend/src/components/admin/AdminLogin.tsx",
+          "frontend/src/components/admin/AdminBootstrap.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/utils/adminTokenError.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/utils/userFacingError.ts"
+          "frontend/src/components/admin/AdminGate.tsx",
+          "frontend/src/pages/admin/AdminPage.tsx",
+          "frontend/src/components/admin/AdminLogin.tsx",
+          "frontend/src/components/admin/AdminBootstrap.tsx"
         ]
       },
       {
-        "id": "REQ-69",
-        "summary": "Make backend token-authenticated admin endpoints return a consistent, explicit, non-trapping error for invalid/expired tokens so the frontend can reliably detect when to clear the session (and otherwise keep the session). Apply this consistency to: getAllOrdersWithToken, getOrderDetailWithToken, downloadFileWithToken, and deleteOrderWithToken.",
+        "id": "REQ-2",
+        "summary": "Update admin-related React Query hooks and admin UI flows to stop using admin session storage and token-based admin calls (e.g., getAllOrdersWithToken/deleteOrderWithToken/downloadFileWithToken/getOrderDetailWithToken), and instead call non-token backend methods that work for any visitor.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/OrdersAdmin.tsx",
+          "frontend/src/types/extended-backend.ts",
+          "frontend/src/hooks/useAdminAuth.ts",
+          "frontend/src/hooks/useAdminSession.ts",
+          "frontend/src/utils/adminSession.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/OrdersAdmin.tsx",
+          "frontend/src/types/extended-backend.ts",
+          "frontend/src/hooks/useAdminAuth.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Remove backend access restrictions for the Admin Panel operations so they are callable by any principal, including: reading all orders, reading order details, deleting orders, downloading files, and updating site content/contact info.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
-      },
-      {
-        "id": "REQ-70",
-        "summary": "Ensure the AdminGate flow remains stable immediately after login: once a token is stored in sessionStorage, AdminGate must treat the user as authenticated and must not revert to the login screen due to background queries unless the backend explicitly rejects the token as invalid/expired.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/admin/AdminGate.tsx",
-          "frontend/src/components/admin/OrdersAdmin.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/admin/AdminGate.tsx",
-          "frontend/src/components/admin/OrdersAdmin.tsx"
-        ]
       }
     ]
   },
@@ -53,11 +61,16 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/admin/AdminBootstrap.tsx",
     "frontend/src/components/admin/AdminGate.tsx",
+    "frontend/src/components/admin/AdminLogin.tsx",
     "frontend/src/components/admin/OrdersAdmin.tsx",
+    "frontend/src/hooks/useAdminAuth.ts",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/utils/adminTokenError.ts",
-    "frontend/src/utils/userFacingError.ts",
+    "frontend/src/pages/admin/AdminPage.tsx",
+    "frontend/src/types/extended-backend.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

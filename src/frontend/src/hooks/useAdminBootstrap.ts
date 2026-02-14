@@ -7,6 +7,11 @@ interface DefaultAdminCredentials {
   password: string;
 }
 
+const SEEDED_CREDENTIALS = {
+  username: 'vishal957041@gmail.com',
+  password: 'Abhishek@2006'
+};
+
 export function useAdminBootstrap() {
   const { actor, isFetching: actorFetching } = useActor();
   const [isLoading, setIsLoading] = useState(true);
@@ -30,10 +35,8 @@ export function useAdminBootstrap() {
         throw new Error('Backend connection not available');
       }
 
-      // Check if backend has adminExists method
       if (typeof (actor as any).adminExists !== 'function') {
-        // If method doesn't exist, assume admin system is not yet implemented
-        // Default to showing that admin exists to prevent bootstrap loop
+        console.warn('adminExists method not available on backend - assuming admin exists');
         setAdminExists(true);
         return;
       }
@@ -43,7 +46,6 @@ export function useAdminBootstrap() {
     } catch (err: any) {
       console.error('Error checking admin existence:', err);
       setError(normalizeError(err));
-      // On error, assume admin exists to prevent bootstrap loop
       setAdminExists(true);
     } finally {
       setIsLoading(false);
@@ -59,20 +61,24 @@ export function useAdminBootstrap() {
         throw new Error('Backend connection not available');
       }
 
-      // Check if backend has createDefaultAdmin method
       if (typeof (actor as any).createDefaultAdmin !== 'function') {
-        throw new Error('Admin creation is not yet implemented in the backend');
+        const errorMsg = 'Admin creation is not available. The backend may need to be updated.';
+        setError(errorMsg);
+        return false;
       }
 
-      const credentials = await (actor as any).createDefaultAdmin();
+      const success = await (actor as any).createDefaultAdmin();
       
-      setDefaultCredentials({
-        username: credentials.username,
-        password: credentials.password
-      });
-      setCredentialsShown(true);
-      setAdminExists(true);
-      return true;
+      if (success) {
+        // Always display the seeded credentials
+        setDefaultCredentials(SEEDED_CREDENTIALS);
+        setCredentialsShown(true);
+        setAdminExists(true);
+        return true;
+      } else {
+        setError('Admin already exists or creation failed');
+        return false;
+      }
     } catch (err: any) {
       console.error('Error creating default admin:', err);
       setError(normalizeError(err));

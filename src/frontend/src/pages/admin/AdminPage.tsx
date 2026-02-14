@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut } from 'lucide-react';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { useAdminSession } from '@/hooks/useAdminSession';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ArrowLeft } from 'lucide-react';
 import OrdersAdmin from '@/components/admin/OrdersAdmin';
+import ContactAdminEditor from '@/components/admin/ContactAdminEditor';
+import BasicTextAdminEditor from '@/components/admin/BasicTextAdminEditor';
+import SocialLinksAdminEditor from '@/components/admin/SocialLinksAdminEditor';
 import AdminGate from '@/components/admin/AdminGate';
 
 interface AdminPageProps {
@@ -10,12 +13,7 @@ interface AdminPageProps {
 }
 
 export default function AdminPage({ onNavigateToHome }: AdminPageProps) {
-  const { logout } = useAdminAuth();
-  const { username } = useAdminSession();
-
-  const handleLogout = async () => {
-    await logout();
-  };
+  const [activeTab, setActiveTab] = useState('orders');
 
   return (
     <AdminGate>
@@ -29,21 +27,29 @@ export default function AdminPage({ onNavigateToHome }: AdminPageProps) {
               </Button>
               <h1 className="text-2xl font-bold">Admin Panel</h1>
             </div>
-            <div className="flex items-center gap-4">
-              {username && (
-                <span className="text-sm text-muted-foreground">
-                  Logged in as <span className="font-medium text-foreground">{username}</span>
-                </span>
-              )}
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
-            </div>
           </div>
         </header>
         <main className="container mx-auto px-4 py-8">
-          <OrdersAdmin />
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mb-8 flex-wrap h-auto">
+              <TabsTrigger value="orders">Orders</TabsTrigger>
+              <TabsTrigger value="basic-text">Basic Text</TabsTrigger>
+              <TabsTrigger value="social-links">Social Links</TabsTrigger>
+              <TabsTrigger value="contact">Contact Settings</TabsTrigger>
+            </TabsList>
+            <TabsContent value="orders">
+              <OrdersAdmin />
+            </TabsContent>
+            <TabsContent value="basic-text">
+              <BasicTextAdminEditor />
+            </TabsContent>
+            <TabsContent value="social-links">
+              <SocialLinksAdminEditor />
+            </TabsContent>
+            <TabsContent value="contact">
+              <ContactAdminEditor />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
     </AdminGate>

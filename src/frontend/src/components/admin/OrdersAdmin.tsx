@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Eye, Download, Trash2, AlertCircle } from 'lucide-react';
-import { NewOrder } from '@/backend';
+import type { NewOrder } from '@/types/extended-backend';
 import {
   Dialog,
   DialogContent,
@@ -121,7 +121,6 @@ export default function OrdersAdmin() {
     );
   }
 
-  // Display error in-place without triggering logout
   if (error) {
     return (
       <Alert variant="destructive">
@@ -286,40 +285,7 @@ export default function OrdersAdmin() {
               </div>
               <div>
                 <Label className="text-muted-foreground">Description</Label>
-                <p className="mt-1 text-sm whitespace-pre-wrap">
-                  {selectedOrder.description}
-                </p>
-              </div>
-              <div className="flex gap-2 pt-4 border-t">
-                <Button
-                  onClick={() => handleDownloadFile(selectedOrder)}
-                  disabled={downloadFileMutation.isPending}
-                  className="flex-1"
-                >
-                  {downloadFileMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download File
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setOrderToDelete(selectedOrder);
-                    setSelectedOrder(null);
-                  }}
-                  disabled={deleteOrderMutation.isPending}
-                  className="flex-1"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Order
-                </Button>
+                <p className="mt-1 text-sm whitespace-pre-wrap">{selectedOrder.description}</p>
               </div>
             </div>
           )}
@@ -341,14 +307,7 @@ export default function OrdersAdmin() {
               onClick={handleDeleteOrder}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteOrderMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

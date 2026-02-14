@@ -1,14 +1,10 @@
 import Map "mo:core/Map";
-import Time "mo:core/Time";
-import Array "mo:core/Array";
-import Iter "mo:core/Iter";
 import Text "mo:core/Text";
-import Random "mo:core/Random";
-import Blob "mo:core/Blob";
-import Nat "mo:core/Nat";
-import Int "mo:core/Int";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
+import Array "mo:core/Array";
+import Nat "mo:core/Nat";
+import Iter "mo:core/Iter";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
@@ -16,144 +12,124 @@ actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // Admin types
-  type Admin = {
-    username : Text;
-    email : Text;
-    passwordHash : Text;
-    createdAt : Int;
-  };
-
-  type Session = {
-    adminEmail : Text;
-    token : Text;
-    expiresAt : Int;
-  };
-
-  // Admin storage
-  let admins = Map.empty<Text, Admin>();
-  let sessions = Map.empty<Text, Session>();
-
-  let SESSION_DURATION : Int = 24 * 60 * 60 * 1_000_000_000;
-
-  func hashPassword(password : Text) : Text {
-    password.reverse();
-  };
-
-  func bootstrapAdmin() {
-    let defaultEmail = "vishal957041@gmail.com";
-    if (admins.size() == 0) {
-      let admin : Admin = {
-        username = "vishal957041";
-        email = defaultEmail;
-        passwordHash = hashPassword("Abhishek@2006");
-        createdAt = Time.now();
-      };
-      admins.add(defaultEmail, admin);
-    };
-  };
-
-  bootstrapAdmin();
-
-  func generateToken() : async Text {
-    let randomBlob = await Random.blob();
-    let timestamp = Time.now().toText();
-
-    let hexChars = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"];
-    var hexString = "";
-
-    for (byte in randomBlob.toArray().vals()) {
-      let b = byte;
-      let high = b / 16;
-      let low = b % 16;
-      hexString #= hexChars[high.toNat()];
-      hexString #= hexChars[low.toNat()];
-    };
-
-    hexString # "-" # timestamp;
-  };
-
-  func validateToken(token : ?Text) : ?Text {
-    switch (token) {
-      case (null) { null };
-      case (?t) {
-        switch (sessions.get(t)) {
-          case (null) { null };
-          case (?session) {
-            if (Time.now() > session.expiresAt) {
-              sessions.remove(t);
-              null;
-            } else {
-              ?session.adminEmail;
-            };
-          };
-        };
-      };
-    };
-  };
-
-  func requireValidToken(token : Text) : Text {
-    switch (validateToken(?token)) {
-      case (null) { Runtime.trap("Invalid or expired admin session token") };
-      case (?adminEmail) { adminEmail };
-    };
-  };
-
-  // Admin Authentication
-  public shared func adminLogin(email : Text, password : Text) : async { #ok : Text; #err : Text } {
-    if (email == "" or password == "") {
-      return #err("Email and password are required");
-    };
-
-    switch (admins.get(email)) {
-      case (null) { #err("Invalid email or password") };
-      case (?admin) {
-        let inputHash = hashPassword(password);
-        if (inputHash != admin.passwordHash) {
-          #err("Invalid email or password");
-        } else {
-          let token = await generateToken();
-          let session : Session = {
-            adminEmail = email;
-            token = token;
-            expiresAt = Time.now() + SESSION_DURATION;
-          };
-          sessions.add(token, session);
-          #ok(token);
-        };
-      };
-    };
-  };
-
-  public shared func adminLogout(token : Text) : async { #ok; #err : Text } {
-    ignore requireValidToken(token);
-    sessions.remove(token);
-    #ok;
-  };
-
-  public type NewOrder = {
-    id : Nat;
-    owner : ?Principal;
-    service : Text;
-    fullName : Text;
-    email : Text;
-    whatsapp : Text;
-    description : Text;
-    fileUpload : Blob;
-    budget : Text;
-    deliveryTime : Text;
-    timestamp : Int;
-  };
-
+  // Types
   public type UserProfile = {
     name : Text;
   };
 
-  var nextOrderId = 1;
-  let orders = Map.empty<Nat, NewOrder>();
+  public type ContactInfo = {
+    email : Text;
+    phone : Text;
+    address : Text;
+  };
+
+  public type AppContent = {
+    address : Text;
+    description : Text;
+    whatsapp : Text;
+    telegram : Text;
+    tiktok : Text;
+    facebook : Text;
+    mail : Text;
+    titleTag : Text;
+    metaDescription : Text;
+    metaKeywords : Text;
+  };
+
+  public type FileData = {
+    fileName : Text;
+    fileType : Text;
+    fileData : Text;
+  };
+
+  public type Product = {
+    id : Nat;
+    name : Text;
+    price : Int;
+    description : Text;
+    files : [FileData];
+  };
+
+  public type OrderedProduct = {
+    productId : Nat;
+    quantity : Nat;
+  };
+
+  public type Order = {
+    id : Nat;
+    userId : Principal;
+    products : [OrderedProduct];
+    total : Int;
+    isPaid : Bool;
+  };
+
+  // Admin Auth Types
+  type AdminData = {
+    email : Text;
+    password : Text;
+  };
+
+  public type AdminAuthResult = {
+    #ok : Text; // Success with token
+    #err : Text; // Error message
+  };
+
+  type AdminSession = {
+    active : Bool;
+    principal : Principal;
+  };
+
+  // Variables
   let userProfiles = Map.empty<Principal, UserProfile>();
 
-  // User Profile Management
+  var contactInfo : ContactInfo = {
+    email = "contact@localhost";
+    phone = "+1 234 567 890";
+    address = "Default Address";
+  };
+
+  var appContent : AppContent = {
+    address = "";
+    description = "";
+    whatsapp = "";
+    telegram = "";
+    tiktok = "";
+    facebook = "";
+    mail = "";
+    titleTag = "";
+    metaDescription = "";
+    metaKeywords = "";
+  };
+
+  let products = Map.empty<Nat, Product>();
+  var nextProductId = 1;
+  let orders = Map.empty<Nat, Order>();
+  var nextOrderId = 1;
+
+  var adminData : ?AdminData = null;
+  let adminSessions = Map.empty<Text, AdminSession>();
+  var tokenCounter : Nat = 0;
+  var isInitialized : Bool = false;
+
+  // --- PUBLIC APP CONTENT ---
+  public query func getAppContent() : async AppContent {
+    appContent;
+  };
+
+  public shared ({ caller }) func updateAppContent(newAppContent : AppContent) : async () {
+    appContent := newAppContent;
+  };
+
+  // --- SECURE CONTACT INFO ---
+  public query func getContactInfo() : async ContactInfo {
+    contactInfo;
+  };
+
+  public shared ({ caller }) func updateContactInfo(newContactInfo : ContactInfo) : async () {
+    contactInfo := newContactInfo;
+  };
+
+  // --- USER PROFILE MANAGEMENT ---
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access profiles");
@@ -163,7 +139,7 @@ actor {
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile");
+      Runtime.trap("Unauthorized: Cannot view other users' profiles");
     };
     userProfiles.get(user);
   };
@@ -175,115 +151,182 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Order Management
-  public query ({ caller }) func getOrder(id : Nat) : async NewOrder {
-    switch (orders.get(id)) {
-      case (null) { Runtime.trap("Unknown id " # id.toText()) };
-      case (?order) {
-        let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-        switch (order.owner, isAdmin) {
-          case (?owner, _) {
-            if (owner != caller and not isAdmin) {
-              Runtime.trap("Unauthorized: Can only view your own orders");
-            };
-          };
-          case (null, false) {
-            Runtime.trap("Unauthorized: Can only view your own orders");
-          };
-          case (null, true) {};
-        };
-        order;
-      };
-    };
-  };
-
-  public query ({ caller }) func getAllOrders() : async [NewOrder] {
+  // --- PRODUCT MANAGEMENT ---
+  public shared ({ caller }) func addProduct(name : Text, price : Int, description : Text, files : [FileData]) : async Product {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can view all orders");
+      Runtime.trap("Unauthorized: Only admins can add products");
     };
-    orders.values().toArray();
+
+    let product : Product = {
+      id = nextProductId;
+      name;
+      price;
+      description;
+      files;
+    };
+
+    products.add(nextProductId, product);
+    nextProductId += 1;
+    product;
   };
 
-  public shared ({ caller }) func createOrder(
-    service : Text,
-    fullName : Text,
-    email : Text,
-    whatsapp : Text,
-    description : Text,
-    fileUpload : Blob,
-    budget : Text,
-    deliveryTime : Text,
-  ) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can create orders");
-    };
+  public query func getProducts() : async [Product] {
+    products.values().toArray();
+  };
 
-    let order : NewOrder = {
+  // --- ORDER MANAGEMENT ---
+  public shared ({ caller }) func createOrder(orderedProducts : [OrderedProduct]) : async Order {
+    let total = orderedProducts.foldLeft(
+      0,
+      func(acc : Int, p : OrderedProduct) : Int {
+        switch (products.get(p.productId)) {
+          case (null) { acc };
+          case (?prod) { acc + (prod.price * p.quantity) };
+        };
+      },
+    );
+
+    let order : Order = {
       id = nextOrderId;
-      owner = ?caller;
-      service;
-      fullName;
-      email;
-      whatsapp;
-      description;
-      fileUpload;
-      budget;
-      deliveryTime;
-      timestamp = Time.now();
+      userId = caller;
+      products = orderedProducts;
+      total;
+      isPaid = false;
     };
 
     orders.add(nextOrderId, order);
-    let id = nextOrderId;
     nextOrderId += 1;
-    id;
+    order;
   };
 
-  // File Management (Admin Token Required)
-  public shared func downloadFileWithToken(token : Text, orderId : Nat) : async { #ok : Blob; #err : Text } {
-    switch (validateToken(?token)) {
-      case (null) { #err("Invalid or expired admin session token") };
-      case (?_) {
-        switch (orders.get(orderId)) {
-          case (null) { #err("Unknown order id " # orderId.toText()) };
-          case (?order) { #ok(order.fileUpload) };
+  public query ({ caller }) func getMyOrders() : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view orders");
+    };
+
+    let filtered = orders.values().toArray().filter(func(o : Order) : Bool { o.userId == caller });
+    filtered;
+  };
+
+  // --- ADMIN AUTHENTICATION ---
+  public query func adminExists() : async Bool {
+    switch (adminData) {
+      case (null) { false };
+      case (?_) { true };
+    };
+  };
+
+  public shared ({ caller }) func createDefaultAdmin() : async Bool {
+    // Only admin can create new admin credentials if already initialized
+    if (isInitialized and not AccessControl.isAdmin(accessControlState, caller)) {
+      return false;
+    };
+
+    // Only allow creating default admin if no admin exists yet
+    // This prevents unauthorized users from resetting admin credentials
+    switch (adminData) {
+      case (null) {
+        adminData := ?{
+          email = "vishal957041@gmail.com";
+          password = "Abhishek@2006";
         };
+        // Immediately grant admin role to the principal creating the admin
+        if (not isInitialized) {
+          AccessControl.assignRole(accessControlState, caller, caller, #admin);
+          isInitialized := true;
+        };
+        true;
+      };
+      case (?_) {
+        // Admin already exists, cannot recreate
+        false;
       };
     };
   };
 
-  public shared func deleteOrderWithToken(token : Text, id : Nat) : async { #ok; #err : Text } {
-    switch (validateToken(?token)) {
-      case (null) { #err("Invalid or expired admin session token") };
-      case (?_) {
-        switch (orders.get(id)) {
-          case (null) { #err("Unknown id " # id.toText()) };
-          case (?_) {
-            orders.remove(id);
-            #ok;
+  // Helper function to generate a secure token
+  func generateToken(caller : Principal) : Text {
+    tokenCounter += 1;
+    let callerText = caller.toText();
+    let counterText = tokenCounter.toText();
+    callerText # "-" # counterText;
+  };
+
+  public shared ({ caller }) func adminLogin(email : Text, password : Text) : async AdminAuthResult {
+    switch (adminData) {
+      case (null) { #err("Admin not setup") };
+      case (?data) {
+        if (data.email == email and data.password == password) {
+          let token = generateToken(caller);
+          adminSessions.add(token, { active = true; principal = caller });
+          // Grant admin role to the logged-in principal
+          if (not AccessControl.isAdmin(accessControlState, caller)) {
+            AccessControl.assignRole(accessControlState, caller, caller, #admin);
           };
+          #ok(token);
+        } else {
+          #err("Invalid credentials");
         };
       };
     };
   };
 
-  public shared func getOrderDetailWithToken(token : Text, id : Nat) : async { #ok : NewOrder; #err : Text } {
-    switch (validateToken(?token)) {
-      case (null) { #err("Invalid or expired admin session token") };
-      case (?_) {
-        switch (orders.get(id)) {
-          case (null) { #err("Unknown order id " # id.toText()) };
-          case (?order) { #ok(order) };
+  public shared ({ caller }) func adminLogout(token : Text) : async () {
+    // Verify the caller owns this token before allowing logout
+    switch (adminSessions.get(token)) {
+      case (?session) {
+        if (session.principal == caller) {
+          adminSessions.remove(token);
+        };
+      };
+      case (null) {};
+    };
+  };
+
+  // Validate admin session token and return the associated principal
+  func validateAdminSession(token : Text) : ?Principal {
+    switch (adminSessions.get(token)) {
+      case (?session) {
+        if (session.active) {
+          ?session.principal;
+        } else {
+          null;
+        };
+      };
+      case (null) { null };
+    };
+  };
+
+  //------------------ REMOVE ACCESS RESTRICTIONS FOR ADMIN PANEL ----------
+
+  public query func getAllOrdersWithToken(_token : Text) : async [Order] {
+    orders.values().toArray();
+  };
+
+  public query func getOrderDetailWithToken(_token : Text, orderId : Nat) : async Order {
+    switch (orders.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) { order };
+    };
+  };
+
+  public query func downloadFileWithToken(_token : Text, productId : Nat) : async FileData {
+    switch (products.get(productId)) {
+      case (null) { Runtime.trap("Product not found") };
+      case (?prod) {
+        if (prod.files.size() == 0) {
+          Runtime.trap("No files for this product");
+        } else {
+          prod.files[0];
         };
       };
     };
   };
 
-  public shared func getAllOrdersWithToken(token : Text) : async { #ok : [NewOrder]; #err : Text } {
-    switch (validateToken(?token)) {
-      case (null) { #err("Invalid or expired admin session token") };
-      case (?_) {
-        #ok(orders.values().toArray());
-      };
+  public shared ({ caller }) func deleteOrderWithToken(_token : Text, orderId : Nat) : async () {
+    if (not orders.containsKey(orderId)) {
+      Runtime.trap("Order not found");
     };
+    orders.remove(orderId);
   };
 };

@@ -1,37 +1,78 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T14:37:56.811Z",
-  "summary": "Frontend changes add deterministic token-error detection and adjust AdminGate/queries to avoid clearing the admin session on generic fetch failures, which aligns with stopping the redirect loop. However, backend changes shown still use trapping token validation and do not provide evidence that the specified token-based admin endpoints consistently return non-trapping Result errors for invalid/expired tokens. Also, frontend evidence covers orders list/download/delete, but order detail handling is not shown.",
+  "generatedAt": "2026-02-14T18:31:33.437Z",
+  "summary": "Frontend admin gating was relaxed via AdminGate and AdminPage now wraps the dashboard directly, but admin auth/login/bootstrap components and token/session-based hooks remain. Admin React Query hooks still call token-gated backend methods (passing an empty token) rather than switching to non-token backend methods. Backend changes are truncated; while updateAppContent/updateContactInfo appear publicly writable, there is insufficient evidence that order/admin operations (list/detail/delete/download) were made fully public and/or that non-token methods were added.",
   "missing_requirements": [
     {
-      "id": "REQ-69",
-      "requirement": "Make token-authenticated admin endpoints return a consistent, explicit, non-trapping #err for invalid/expired tokens across getAllOrdersWithToken, getOrderDetailWithToken, downloadFileWithToken, and deleteOrderWithToken (and never trap for normal failures).",
-      "reason": "The diff shows backend/main.mo still contains requireValidToken that traps with Runtime.trap(\"Invalid or expired admin session token\"). There is no visible change proving the four token-based endpoints were updated to return a Result #err consistently (same wording) instead of trapping.",
+      "id": "REQ-1",
+      "requirement": "Remove all frontend authentication gating for the Admin Panel so that navigating to the Admin view always renders the admin dashboard without showing AdminLogin/AdminBootstrap screens.",
+      "reason": "Although AdminGate now unconditionally renders children, AdminLogin and AdminBootstrap components still exist and appear to still implement login/setup flows; the diff does not show that navigation/routing can no longer render these screens.",
       "evidence": [
-        "backend/main.mo"
+        "frontend/src/components/admin/AdminGate.tsx",
+        "frontend/src/components/admin/AdminLogin.tsx",
+        "frontend/src/components/admin/AdminBootstrap.tsx"
       ]
     },
     {
-      "id": "REQ-68",
-      "requirement": "Do not clear the stored admin session token due to non-auth/ambiguous errors during admin data fetching, including order detail fetching; only clear session when backend explicitly indicates invalid/expired token.",
-      "reason": "The diff provides evidence of this behavior for orders list (useGetAllOrders) and for download/delete mutations, but does not show any implementation/evidence for the order detail fetch path (hook and/or component) using the same explicit-token-only clearing logic.",
+      "id": "REQ-2",
+      "requirement": "Update admin-related React Query hooks and admin UI flows to stop using admin session storage and token-based admin calls, and instead call non-token backend methods that work for any visitor.",
+      "reason": "Hooks still call token-based backend methods (e.g., getAllOrdersWithToken/downloadFileWithToken/deleteOrderWithToken) by passing an empty token, and admin session/token logic remains in useAdminAuth.",
       "evidence": [
         "frontend/src/hooks/useQueries.ts",
-        "frontend/src/components/admin/OrdersAdmin.tsx"
+        "frontend/src/types/extended-backend.ts",
+        "frontend/src/hooks/useAdminAuth.ts"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Remove backend access restrictions for Admin Panel operations (read all orders, read order details, delete orders, download files, update content/contact info) so callable by any principal; provide non-token methods; no email/password admin login required.",
+      "reason": "Backend diff is truncated and still shows AccessControl/MixinAuthorization included and admin auth/session/token data structures present; there is no clear evidence that order-related methods were de-restricted or that non-token alternatives were added for token-gated endpoints.",
+      "evidence": [
+        "backend/main.mo",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/types/extended-backend.ts"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.72,
+  "hallucinated_features": [
+    {
+      "description": "Kept (and still functional) admin email/password login and admin token verification/session storage logic despite making admin panel public.",
+      "reason": "BuildRequest explicitly asks for no email/password and no token gating for admin panel; diff retains login hook that stores tokens, verifies tokens, and clears sessions on errors.",
+      "evidence": [
+        "frontend/src/hooks/useAdminAuth.ts",
+        "frontend/src/components/admin/AdminLogin.tsx"
+      ]
+    },
+    {
+      "description": "Implemented a strategy of calling token-gated backend methods with an empty token and relying on the backend to ignore the token.",
+      "reason": "BuildRequest asked to stop using token-based admin calls and instead call non-token backend methods; this empty-token approach is not requested and conflicts with REQ-2.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/types/extended-backend.ts"
+      ]
+    },
+    {
+      "description": "Added deprecation messaging/UI copy indicating admin setup/login screens are deprecated but still rendered as standalone pages.",
+      "reason": "Request was to remove gating/screens for admin entirely, not to keep them with deprecation notices.",
+      "evidence": [
+        "frontend/src/components/admin/AdminBootstrap.tsx",
+        "frontend/src/components/admin/AdminLogin.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.64,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/admin/AdminBootstrap.tsx",
     "frontend/src/components/admin/AdminGate.tsx",
+    "frontend/src/components/admin/AdminLogin.tsx",
     "frontend/src/components/admin/OrdersAdmin.tsx",
+    "frontend/src/hooks/useAdminAuth.ts",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/utils/adminTokenError.ts",
-    "frontend/src/utils/userFacingError.ts",
+    "frontend/src/pages/admin/AdminPage.tsx",
+    "frontend/src/types/extended-backend.ts",
     "project_state.json"
   ]
 }
